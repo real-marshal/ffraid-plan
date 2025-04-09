@@ -6,12 +6,21 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "serve": "next build && serve out"
   },
   "dependencies": {
+    "@react-spring/konva": "^9.7.5",
+    "canvas": "^3.1.0",
+    "color": "^5.0.0",
+    "immer": "^10.1.1",
+    "konva": "^9.3.20",
     "next": "15.2.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-dropzone": "^14.3.8",
+    "react-konva": "^19.0.3",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -19,9 +28,13 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "daisyui": "latest",
     "eslint": "^9",
     "eslint-config-next": "15.2.4",
+    "prettier": "^3.5.3",
+    "serve": "^14.2.4",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "packageManager": "yarn@3.3.0+sha512.16136ce2bbe4239c67bdb29c7af54918e0d8ef3029076bc4f30d32f5cdc35b6a081d8bff0ed404a32dc3da45f01bd7e0b9d12e83f1fc42638a3adc77115fafad"
 }
