@@ -123,22 +123,27 @@ export interface WaapiEntity {
 
 const konvaPropToWaapiProp: Partial<Record<EntityPropName, keyof CSSProperties>> = {
   fill: 'backgroundColor',
-  stroke: 'backgroundColor',
+  stroke: 'fill',
 }
 
 // uses top/left & width/height atm, not transforms
 // example output
 // [{"type":"rect","duration":3,"keyframes":[{"backgroundColor":"#ffffff","left":"15.67%","top":"15.83%","width":"5%","height":"5%","rotate":"0deg"},{"offset":1,"backgroundColor":"#26a269","left":"72.83%","top":"36.67%","width":"13.92%","height":"13.92%","rotate":"-180deg"},{"offset":2,"left":"49.12%","top":"55.08%","width":"43.06%","height":"6.76%","rotate":"-162.9deg"}],"initialValues":{"transform":"translate(-50%,-50%)","left":"15.67%","top":"15.83%","width":"5%","height":"5%","opacity":1,"backgroundColor":"#ffffff","rotate":"0deg"}}]
-export function kfsToWaapi(entities: Entity[], keyframes: Kf[], duration: number): WaapiEntity[] {
-  if (!entities.length || !keyframes.length) {
+export function kfsToWaapi(
+  entities: Entity[],
+  passedKeyframes: Kf[],
+  duration: number
+): WaapiEntity[] {
+  if (!entities.length || !passedKeyframes.length) {
     return []
   }
 
   return entities.map((e) => {
     const kfedProps: Set<keyof CSSProperties> = new Set()
 
+    const keyframes = passedKeyframes.toSorted((a, b) => a.time - b.time)
+
     const waapiKeyframes = keyframes
-      .sort((a, b) => a.time - b.time)
       .filter((kf) => kf.entityId === e.id)
       .reduce((result, kf) => {
         const offset = round(kf.time / duration)
@@ -171,7 +176,7 @@ export function kfsToWaapi(entities: Entity[], keyframes: Kf[], duration: number
             break
           }
           case 'scaleX': {
-            const prevScaleYKf = keyframes.find(
+            const prevScaleYKf = keyframes.findLast(
               (prevKf) =>
                 prevKf.entityId === e.id && prevKf.prop === 'scaleY' && prevKf.time <= kf.time
             )
@@ -179,7 +184,7 @@ export function kfsToWaapi(entities: Entity[], keyframes: Kf[], duration: number
             break
           }
           case 'scaleY': {
-            const prevScaleXKf = keyframes.find(
+            const prevScaleXKf = keyframes.findLast(
               (prevKf) =>
                 prevKf.entityId === e.id && prevKf.prop === 'scaleX' && prevKf.time <= kf.time
             )
@@ -232,12 +237,30 @@ export function kfsToWaapi(entities: Entity[], keyframes: Kf[], duration: number
       ...e.props,
       position: 'absolute',
       // compensating for origin shift
-      transform: 'translate(-50%,-50%)',
+      translate: '-50% -50%',
       // for the case when they weren't kf'd
       left: round((e.props.x / width) * 100) + '%',
       top: round((e.props.y / height) * 100) + '%',
-      width: round(((e.props.width ?? e.props.radius! * 2) / width) * 100) + '%',
-      height: round(((e.props.height ?? e.props.radius! * 2) / height) * 100) + '%',
+      width:
+        round(
+          (((e.props.width ?? e.type === 'circle')
+            ? e.props.radius! * 2
+            : e.type === 'arrow'
+              ? 110
+              : NaN) /
+            width) *
+            100
+        ) + '%',
+      height:
+        round(
+          (((e.props.height ?? e.type === 'circle')
+            ? e.props.radius! * 2
+            : e.type === 'arrow'
+              ? 40
+              : NaN) /
+            height) *
+            100
+        ) + '%',
       rotate: e.props.rotation + 'deg',
       ...(waapiKeyframes?.[0] as Omit<CSSProperties, 'offset'>),
     }
@@ -246,10 +269,16 @@ export function kfsToWaapi(entities: Entity[], keyframes: Kf[], duration: number
       initialValues.borderRadius = '50%'
     }
 
+    if (e.type === 'arrow') {
+      delete initialValues.height
+    }
+
     delete initialValues.x
     delete initialValues.y
     delete initialValues.radius
     delete initialValues.rotation
+    delete initialValues.scaleX
+    delete initialValues.scaleY
 
     for (const konvaProp in konvaPropToWaapiProp) {
       // @ts-expect-error crazy bitch

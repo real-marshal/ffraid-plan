@@ -86,6 +86,7 @@ export function Entities({
       case 'circle':
         return <Circle key={entity.id} {...entity.props} {...commonProps} />
       case 'arrow':
+        // waapi export depends on these dimensions
         const length = 100
         return (
           <Arrow
