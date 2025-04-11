@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Konva from 'konva'
-import { CoreAction, EntityPropName, KfsByEntity } from '@/components/canvas/canvas-state'
+import { CoreAction, Entity, EntityPropName, KfsByEntity } from '@/components/canvas/canvas-state'
 import { lerp, lerpRGB, round } from '@/utils'
 import Color from 'color'
+import { useSearchParams } from 'next/navigation'
+import { base64ToState } from '@/components/canvas/canvas-utils'
+import { externalState } from '@/components/canvas/external-state'
+import { debug } from '@/components/canvas/canvas'
 
 export function useKonvaContextMenu() {
   const [contextMenuState, setContextMenuState] = useState<{
@@ -65,13 +69,52 @@ export function useRerender({
           continue
         }
 
-        const prevKfInd = propKfs.findLastIndex((kf) => kf.time <= currentTime)
-
-        // no need to interpolate anything if it's the last kf
-        if (prevKfInd < 0 || prevKfInd + 1 >= propKfs.length) continue
-
+        const prevKfInd = propKfs.findLastIndex((kf) => kf.time < currentTime)
         const prevKf = propKfs[prevKfInd]
+
+        // current time is after the last kf, use last kf value
+        if (prevKfInd + 1 === propKfs.length) {
+          dispatch({
+            type: 'set_entity_param',
+            id: entityId,
+            param: prop as EntityPropName,
+            value: prevKf.value,
+            autoKf: false,
+            updateKf: false,
+            currentTime,
+          })
+          continue
+        }
+
+        // current time is before the first kf, use first kf value
+        if (prevKfInd < 0) {
+          dispatch({
+            type: 'set_entity_param',
+            id: entityId,
+            param: prop as EntityPropName,
+            value: propKfs[0].value,
+            autoKf: false,
+            updateKf: false,
+            currentTime,
+          })
+          continue
+        }
+
         const nextKf = propKfs[prevKfInd + 1]
+
+        // current time is at a kf, use this kf's value
+        if (currentTime === nextKf.time) {
+          dispatch({
+            type: 'set_entity_param',
+            id: entityId,
+            param: prop as EntityPropName,
+            value: nextKf.value,
+            autoKf: false,
+            updateKf: false,
+            currentTime,
+          })
+          continue
+        }
 
         if (typeof prevKf.value === 'number' && typeof nextKf.value === 'number') {
           debug && console.log('num interp')
