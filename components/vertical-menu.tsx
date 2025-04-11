@@ -5,6 +5,7 @@ export function VerticalMenu({
   onHealerAdd,
   onTankAdd,
   onRectAdd,
+  onCircAdd,
 }: {
   className?: string
   onMeleeAdd: () => void
@@ -12,9 +13,13 @@ export function VerticalMenu({
   onHealerAdd: () => void
   onTankAdd: () => void
   onRectAdd: () => void
+  onCircAdd: () => void
 }) {
   return (
     <ul className={`menu bg-base-200 rounded-box ${className}`}>
+      <button className='btn btn-sm' onClick={onCircAdd}>
+        circ
+      </button>
       <button className='btn btn-sm' onClick={onRectAdd}>
         rect
       </button>

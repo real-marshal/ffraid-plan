@@ -3,135 +3,186 @@
 // shouldn't be applied to canvas images
 /* eslint-disable jsx-a11y/alt-text */
 
-import { Circle, Layer, Stage, Image, Rect } from 'react-konva'
-import { memo, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { Layer, Stage, Image, Rect, Transformer } from 'react-konva'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { ArenaPicker } from '@/components/arena-picker'
 import { Menu } from '@/components/menu'
 import { VerticalMenu } from '@/components/vertical-menu'
 import { ContextMenu } from '@/components/context-menu'
-import { Timeline } from '@/components/timeline'
-import { lerp } from '@/utils'
 import { EntityList } from '@/components/entity-list'
-import { EntityProps, entityTypeToProps } from '@/components/entity-props'
-import { useKonvaContextMenu } from '@/hooks/use-konva-context-menu'
-import { makeEntity } from './canvas-utils'
-import {
-  CoreAction,
-  coreReducer,
-  Entity,
-  EntityParams,
-  externalState,
-  initialState,
-  Kf,
-  selectEntityParams,
-  selectSelectedEntity,
-  selectSelectedEntityParams,
-  Tw,
-} from './canvas-state'
+import { EntityPropEditor } from '@/components/entity-prop-editor'
+import { useKonvaContextMenu, useRerender } from './canvas-hooks'
+import { base64ToState, kfsToWaapi, makeEntity, stateToBase64 } from './canvas-utils'
+import { coreReducer, initialState } from './canvas-state'
+import { Entities } from '@/components/entities'
 import Konva from 'konva'
-import { usePrev } from '@react-spring/shared'
-
-// function getInterpolatedParamValue(
-//   entityId: string,
-//   param: 'x' | 'y',
-//   sortedKeyframePairs: [number, Kf][],
-//   currentTime: number
-// ): unknown {
-//   const prevKfInd = sortedKeyframePairs.findLastIndex(
-//     ([kfTime, kf]) => kfTime < currentTime && kf[entityId] && param in kf[entityId]
-//   )
-//   const nextKfInd = sortedKeyframePairs.findIndex(
-//     ([kfTime, kf]) => kfTime > currentTime && kf[entityId] && param in kf[entityId]
-//   )
-//
-//   if (nextKfInd === -1) return
-//
-//   if (prevKfInd === -1) {
-//     return alert('The first keyframe unexpectedly disappeared somewhere')
-//   }
-//
-//   const [prevKfTime, prevKf] = sortedKeyframePairs[prevKfInd]
-//   const [nextKfTime, nextKf] = sortedKeyframePairs[nextKfInd]
-//
-//   // ! because existence is checked in prevKfInd/nextKfInd searches
-//   return lerp(
-//     prevKf[entityId][param]!,
-//     nextKf[entityId][param]!,
-//     (currentTime - prevKfTime) / (nextKfTime - prevKfTime)
-//   )
-// }
+import { externalState } from '@/components/canvas/external-state'
+import { KfTimeline } from '@/components/kf-timeline'
+import { Timeline } from '@/components/timeline'
+import { round } from '@/utils'
+import { useSearchParams } from 'next/navigation'
 
 export const width = 600
 export const height = 600
 
 export function Canvas() {
   const [arena, setArena] = useState<ImageBitmap>()
+  const arenaImageRef = useRef<Konva.Image>(null)
 
   const { contextMenuState, onContextMenu } = useKonvaContextMenu()
 
   const [state, dispatch] = useReducer(coreReducer, initialState)
-  const { entities, selectedEntityInd, keyframes, currentTime } = state
-  const selectedEntity = selectSelectedEntity(state)
-  // const sortedKeyframeEntries = useMemo(
-  //   () => [...keyframes.entries()].sort(([a], [b]) => a - b),
-  //   [keyframes]
-  // )
+  const { entities, keyframes, keyframesByEntity } = state
+
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(3)
 
   const [isPlaying, setIsPlaying] = useState(false)
   const playerInterval = useRef<number | null>(null)
 
-  // this is kind of a dirty solution but well..
-  // the original problem is that you can't pass a callback to dispatch like with useState
-  // which caused updates to currentTime to be non-atomic breaking reactivity
-  // at the same time, moving currentTime out of the reducer means heavily complicating
-  // both the reducer and all selectors
-  // so in the end, i decided to just have this separate time value for the interval for the time being
-  const [intervalTime, setIntervalTime] = useState(0)
+  const [selectedEntityIds, setSelectedEntityIds] = useState<string[]>([])
+  const selectedEntity = selectedEntityIds[0]
+    ? entities.find((e) => e.id === selectedEntityIds[0])
+    : undefined
+  const selectedEntities = entities.filter((e) => selectedEntityIds.includes(e.id))
+
+  const [selectionRect, setSelectionRect] = useState({
+    isShown: false,
+    x1: 0,
+    y1: 0,
+    x2: 0,
+    y2: 0,
+  })
+
+  const transformerRef = useRef<Konva.Transformer>(null)
 
   useEffect(() => {
-    dispatch({ type: 'set_time', time: intervalTime })
+    if (!transformerRef.current) return
 
-    const tweens = externalState.tweensByBeginTime.get(intervalTime)
+    if (!selectedEntityIds.length) {
+      transformerRef.current.nodes([])
+      return
+    }
 
-    tweens?.forEach((tw) => {
-      tw.tween.reset()
-      tw.tween.play()
-    })
-  }, [intervalTime])
+    const nodes = selectedEntityIds.map((id) => externalState.entityRefs[id]).filter((ref) => !!ref)
 
+    transformerRef.current.nodes(nodes)
+  }, [selectedEntityIds])
+
+  useRerender({ keyframesByEntity, currentTime, dispatch })
+
+  console.log('canvas rerender')
+
+  const params = useSearchParams()
+  const paramState = params.get('s')
+
+  useEffect(() => {
+    if (!paramState || entities.length > 0) return
+    ;(async () => {
+      try {
+        const restoredState = await base64ToState(paramState)
+        console.log(restoredState)
+        setTimeout(() => {
+          dispatch({ type: 'replace_state', newState: restoredState })
+        }, 10)
+      } catch (err) {
+        alert(err)
+        console.error(err)
+      }
+    })()
+  }, [entities.length, paramState])
+
+  // http://localhost:3000?s=G48ACI7URjVTnI5Q6UbM7dMU0SimaZYRu66PWVuid4iksAYg0ADsBgcSBZQEBFE-4SA68WXJ1ELzrTSUBpvZzofl3Hy0MP6zIvC1MgBUwDE64BimmCJJUikr8bJc-bDk0h9a4xjCwwgEld5v2gE7AkAc9N2uHEUKemZ0HQ
   return (
-    <div className='grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_1fr_1fr]'>
-      {selectedEntity && (
-        <EntityProps
+    <div className='grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_1fr_auto_auto]'>
+      {selectedEntityIds.length > 0 && (
+        <EntityPropEditor
           className='col-start-1 row-start-1 row-span-3'
-          entity={selectedEntity}
-          values={selectSelectedEntityParams(state)}
+          entities={selectedEntities}
           onPropChange={(propName, value) => {
-            console.log(`dispatch with ${propName} new value ${value}`)
-            dispatch({
-              type: 'set_entity_param',
-              id: selectedEntity.id,
-              param: propName,
-              value,
-            })
+            console.log('onPropChange')
+
+            selectedEntities.forEach((e) =>
+              dispatch({
+                type: 'set_entity_param',
+                id: e.id,
+                param: propName,
+                value,
+                autoKf: true,
+                updateKf: true,
+                currentTime,
+              })
+            )
           }}
           onKf={(param) =>
-            param in (keyframes.get(currentTime)?.[selectedEntity.id] ?? {})
-              ? dispatch({ type: 'remove_kf', entityId: selectedEntity.id, param })
-              : dispatch({ type: 'set_kf', entityId: selectedEntity.id, param })
+            keyframesByEntity[selectedEntity!.id]?.[param]?.find((kf) => kf.time === currentTime)
+              ? selectedEntities.forEach((e) =>
+                  dispatch({ type: 'remove_kf', entityId: e.id, param, currentTime })
+                )
+              : selectedEntities.forEach((e) =>
+                  dispatch({ type: 'set_kf', entityId: e.id, param, currentTime })
+                )
           }
           currentTime={currentTime}
           keyframes={keyframes}
         />
       )}
-      <Menu className='col-start-2' onClear={() => dispatch({ type: 'reset' })} />
+      <Menu
+        className='col-start-2'
+        onClear={() => {
+          dispatch({ type: 'reset' })
+          window.history.replaceState({}, '', '/')
+        }}
+        onWaapiExport={() => {
+          const waapiObj = kfsToWaapi(entities, keyframes, duration)
+
+          void navigator.clipboard.writeText(JSON.stringify(waapiObj))
+        }}
+        onLinkExport={async () => {
+          if (!entities.length) return
+
+          try {
+            const base64 = await stateToBase64(entities, keyframes, duration)
+
+            window.history.replaceState({}, '', `?s=${base64}`)
+          } catch (err) {
+            alert(err)
+            console.error(err)
+          }
+        }}
+      />
       <VerticalMenu
         className='col-start-1 row-start-2 self-end justify-self-end'
-        onMeleeAdd={() => dispatch({ type: 'add_entity', entity: makeEntity('melee') })}
-        onRangedAdd={() => dispatch({ type: 'add_entity', entity: makeEntity('ranged') })}
-        onHealerAdd={() => dispatch({ type: 'add_entity', entity: makeEntity('healer') })}
-        onTankAdd={() => dispatch({ type: 'add_entity', entity: makeEntity('tank') })}
-        onRectAdd={() => dispatch({ type: 'add_entity', entity: makeEntity('rect') })}
+        onMeleeAdd={() => {
+          const entity = makeEntity('melee')
+          dispatch({ type: 'add_entity', entity })
+          setSelectedEntityIds([entity.id])
+        }}
+        onRangedAdd={() => {
+          const entity = makeEntity('ranged')
+          dispatch({ type: 'add_entity', entity })
+          setSelectedEntityIds([entity.id])
+        }}
+        onHealerAdd={() => {
+          const entity = makeEntity('healer')
+          dispatch({ type: 'add_entity', entity })
+          setSelectedEntityIds([entity.id])
+        }}
+        onTankAdd={() => {
+          const entity = makeEntity('tank')
+          dispatch({ type: 'add_entity', entity })
+          setSelectedEntityIds([entity.id])
+        }}
+        onRectAdd={() => {
+          const entity = makeEntity('rect')
+          dispatch({ type: 'add_entity', entity })
+          setSelectedEntityIds([entity.id])
+        }}
+        onCircAdd={() => {
+          const entity = makeEntity('circle')
+          dispatch({ type: 'add_entity', entity })
+          setSelectedEntityIds([entity.id])
+        }}
       />
       <div
         className={`col-start-2 row-start-2 justify-center relative w-[${width}px] h-[${height}px]`}
@@ -141,14 +192,164 @@ export function Canvas() {
           width={width}
           height={height}
           className='bg-gray-600'
-          onClick={() => dispatch({ type: 'deselect_entity' })}
+          onClick={() => {
+            console.log('stage onclick')
+            setSelectedEntityIds([])
+          }}
+          onMouseDown={(e) => {
+            if (e.target.id() !== 'arena-image') {
+              return
+            }
+
+            const { x, y } = e.target.getStage()?.getPointerPosition() ?? {}
+            if (x === undefined || y === undefined) return
+
+            setSelectionRect({
+              isShown: true,
+              x1: x,
+              y1: y,
+              x2: x,
+              y2: y,
+            })
+          }}
+          onMouseMove={(e) => {
+            if (!selectionRect.isShown) return
+
+            const { x, y } = e.target.getStage()?.getPointerPosition() ?? {}
+            console.log(`x ${x} y ${y}`)
+            if (x === undefined || y === undefined) return
+
+            setSelectionRect((selectionRect) => ({
+              ...selectionRect,
+              x2: x,
+              y2: y,
+            }))
+          }}
+          onMouseUp={() => {
+            if (!selectionRect.isShown) return
+
+            setSelectionRect((selectionRect) => ({
+              ...selectionRect,
+              isShown: false,
+            }))
+
+            const selection = {
+              x: Math.min(selectionRect.x1, selectionRect.x2),
+              y: Math.min(selectionRect.y1, selectionRect.y2),
+              width: Math.abs(selectionRect.x2 - selectionRect.x1),
+              height: Math.abs(selectionRect.y2 - selectionRect.y1),
+            }
+
+            setSelectedEntityIds(
+              entities
+                .filter(({ props }) =>
+                  Konva.Util.haveIntersection(selection, {
+                    x: props.x,
+                    y: props.y,
+                    width: props.width ?? props.radius! * 2,
+                    height: props.height ?? props.radius! * 2,
+                  })
+                )
+                .map((e) => e.id)
+            )
+          }}
         >
           <Layer>
-            <Image image={arena} width={width} height={height} />
+            <Image
+              id='arena-image'
+              image={arena}
+              width={width}
+              height={height}
+              ref={arenaImageRef}
+            />
           </Layer>
           <Layer>
-            <Circle x={0} y={0} radius={50} fill='red' />
-            <MemoedEntities entities={entities} onContextMenu={onContextMenu} dispatch={dispatch} />
+            <Entities
+              entities={entities}
+              currentTime={currentTime}
+              dispatch={dispatch}
+              onContextMenu={onContextMenu}
+              selectedEntityIds={selectedEntityIds}
+              setSelectedEntityIds={setSelectedEntityIds}
+            />
+          </Layer>
+          <Layer>
+            {selectionRect.isShown && (
+              <Rect
+                x={Math.min(selectionRect.x1, selectionRect.x2)}
+                y={Math.min(selectionRect.y1, selectionRect.y2)}
+                width={Math.abs(selectionRect.x2 - selectionRect.x1)}
+                height={Math.abs(selectionRect.y2 - selectionRect.y1)}
+                fill='#54a9f28a'
+                stroke='#54a9f2'
+              />
+            )}
+            <Transformer
+              rotateLineVisible={false}
+              anchorSize={6}
+              anchorStrokeWidth={1}
+              rotateAnchorOffset={20}
+              rotationSnaps={Array(32)
+                .fill(0)
+                .map((_, ind) => (ind * 360) / 32)}
+              ref={transformerRef}
+              onTransformEnd={() => {
+                transformerRef.current!.nodes().forEach((node) => {
+                  if (node.getClassName() === 'Rect') {
+                    dispatch({
+                      type: 'set_entity_param',
+                      id: node.id(),
+                      param: 'width',
+                      value: round(node.width() * node.scaleX()),
+                      autoKf: true,
+                      updateKf: true,
+                      currentTime,
+                    })
+                    dispatch({
+                      type: 'set_entity_param',
+                      id: node.id(),
+                      param: 'height',
+                      value: round(node.height() * node.scaleY()),
+                      autoKf: true,
+                      updateKf: true,
+                      currentTime,
+                    })
+                  }
+
+                  if (node.getClassName() === 'Circle') {
+                    dispatch({
+                      type: 'set_entity_param',
+                      id: node.id(),
+                      param: 'radius',
+                      value: round((node as Konva.Circle).radius() * node.scaleX()),
+                      autoKf: true,
+                      updateKf: true,
+                      currentTime,
+                    })
+                  }
+
+                  dispatch({
+                    type: 'set_entity_param',
+                    id: node.id(),
+                    param: 'rotation',
+                    value: round(node.rotation()),
+                    autoKf: true,
+                    updateKf: true,
+                    currentTime,
+                  })
+                  node.scaleX(1)
+                  node.scaleY(1)
+                  node.rotate(0)
+                })
+              }}
+              boundBoxFunc={(oldBox, newBox) => {
+                // Limit resize
+                if (newBox.width < 5 || newBox.height < 5) {
+                  return oldBox
+                }
+                return newBox
+              }}
+            />
           </Layer>
         </Stage>
         {!arena && <ArenaPicker onPick={(arena) => setArena(arena)} />}
@@ -158,41 +359,19 @@ export function Canvas() {
               left: contextMenuState.x,
               top: contextMenuState.y,
             }}
-            onDelete={() => dispatch({ type: 'delete_entity', id: contextMenuState.targetId! })}
+            onDelete={() => {
+              dispatch({ type: 'delete_entity', id: contextMenuState.targetId! })
+              setSelectedEntityIds([])
+            }}
           />
         )}
       </div>
       <Timeline
-        onTimeChange={(time) => {
-          // const prevTweens = [...externalState.tweensByBeginTime.keys()]
-          //   .sort((a, b) => a - b)
-          //   .filter((tw) => tw < currentTime)
-          const twsToRun: Tw[] = []
-
-          Object.values(externalState.tweensByEntity).forEach((paramTweens) => {
-            Object.entries(paramTweens).forEach(([paramName, tws]) => {
-              const tw = tws
-                .sort((a, b) => a.beginTime - b.beginTime)
-                .findLast((tw) => tw.beginTime <= time && tw.endTime >= time)
-
-              if (tw) {
-                twsToRun.push(tw)
-              }
-            })
-          })
-          twsToRun.forEach((tw) => {
-            tw.tween.seek(lerp(tw.beginTime, tw.endTime, time - tw.beginTime))
-          })
-          console.log(time)
-        }}
         isPlaying={isPlaying}
         onPlay={(duration) => {
           setIsPlaying(true)
           playerInterval.current = window.setInterval(() => {
-            console.log('int')
-            setIntervalTime((time) => Math.round((time >= duration ? 0 : time + 0.1) * 10) / 10)
-            // this doesn't work
-            // dispatch({ type: 'set_time', time: currentTime >= duration ? 0 : currentTime + 0.1 })
+            setCurrentTime((time) => Math.round((time >= duration ? 0 : time + 0.1) * 10) / 10)
           }, 100)
         }}
         onPause={() => {
@@ -202,118 +381,23 @@ export function Canvas() {
             window.clearInterval(playerInterval.current)
           }
         }}
-        keyframes={keyframes}
         currentTime={currentTime}
-        setCurrentTime={(currentTime) => dispatch({ type: 'set_time', time: currentTime })}
+        setCurrentTime={setCurrentTime}
+        duration={duration}
+        setDuration={setDuration}
+      />
+      <KfTimeline
+        keyframesByEntity={keyframesByEntity}
+        duration={duration}
+        onKfMove={(time, newTime) => dispatch({ type: 'move_kf', time, newTime })}
       />
       <EntityList
         entities={entities}
         className='col-start-3 row-span-3 ml-10 w-[250px]'
-        selectedEntityInd={selectedEntityInd}
-        onEntitySelect={(id) => dispatch({ type: 'select_entity', id })}
-        currentTime={currentTime}
-        keyframes={keyframes}
+        selectedEntityIds={selectedEntityIds}
+        onEntitySelect={(id) => setSelectedEntityIds([id])}
+        keyframesByEntity={keyframesByEntity}
       />
     </div>
   )
 }
-
-function Entities({
-  entities,
-  onContextMenu,
-  dispatch,
-}: {
-  entities: Entity[]
-  onContextMenu: (entityId: string) => (e: Konva.KonvaEventObject<PointerEvent>) => void
-  dispatch: (action: CoreAction) => void
-}) {
-  console.log(usePrev(entities) === entities)
-  console.log(usePrev(onContextMenu) === onContextMenu)
-  console.log(usePrev(dispatch) === dispatch)
-  console.log('rerendered entities')
-
-  return entities.map((entity) => {
-    // check if keyframed
-    const propDescriptions = entityTypeToProps[entity.type]
-
-    // const params = selectEntityParams(state, entity.id)
-    // const actualParamValues: EntityParams = { ...params }
-
-    // propDescriptions.forEach(({ name, type }) => {
-    //   if (!keyframesByEntity[entity.id]?.[name]) {
-    //     return
-    //   }
-    // we have current time, entity and prop name
-    // determine seek position for the prop by finding kfs using keyframesByEntity
-    // find the tween for this entity, this prop and this current time
-    // })
-
-    const params = {}
-
-    const x =
-      params?.x ??
-      // (getInterpolatedParamValue(entity.id, 'x', sortedKeyframeEntries, currentTime) as
-      //   | number
-      //   | undefined) ??
-      width / 2
-
-    const y =
-      params?.y ??
-      // (getInterpolatedParamValue(entity.id, 'y', sortedKeyframeEntries, currentTime) as
-      //   | number
-      //   | undefined) ??
-      width / 2
-
-    switch (entity.type) {
-      case 'rect':
-      case 'melee':
-      case 'ranged':
-      case 'healer':
-      case 'tank':
-        return (
-          <Rect
-            key={entity.id}
-            ref={(ref) => {
-              externalState.entityRefs[entity.id] = ref
-            }}
-            x={x}
-            y={y}
-            width={30}
-            height={30}
-            fill={entity.initialParams?.fill}
-            opacity={entity.initialParams.opacity}
-            draggable
-            onContextMenu={onContextMenu(entity.id)}
-            onClick={(e) => {
-              dispatch({ type: 'select_entity', id: entity.id })
-              e.cancelBubble = true
-            }}
-            onMouseDown={(e) => {
-              dispatch({ type: 'select_entity', id: entity.id })
-              e.cancelBubble = true
-            }}
-            onDragEnd={(e) => {
-              // const newParams = { x: e.target.x(), y: e.target.y() }
-              //
-              // if (!keyframes.has(currentTime)) {
-              //   return
-              // }
-              // setKeyframes(
-              //   (kfs) =>
-              //     new Map(
-              //       kfs.set(currentTime, {
-              //         ...kfs.get(currentTime),
-              //         [entity.id]: { ...currentKfParams, ...newParams },
-              //       })
-              //     )
-              // )
-            }}
-          />
-        )
-      default:
-        alert('Unknown entity type')
-    }
-  })
-}
-
-const MemoedEntities = memo(Entities)
