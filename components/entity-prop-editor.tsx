@@ -34,6 +34,12 @@ export const entityTypeToProps: Record<Entity['type'], PropDescription[]> = {
     { name: 'fill', type: 'color' },
   ],
   circle: [...baseProps, { name: 'radius', type: 'number' }, { name: 'fill', type: 'color' }],
+  arrow: [
+    ...baseProps,
+    { name: 'stroke', type: 'color' },
+    { name: 'scaleX', type: 'number' },
+    { name: 'scaleY', type: 'number' },
+  ],
 }
 
 export function EntityPropEditor({
@@ -127,7 +133,7 @@ function Input({
           value={(value as number) ?? 0}
           setValue={(v) => onPropChange(propName, v)}
           step={0.1}
-          min={0}
+          min={-1000}
           max={1000}
         />
       )

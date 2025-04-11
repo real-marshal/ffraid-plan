@@ -74,7 +74,7 @@ export function useRerender({
         const nextKf = propKfs[prevKfInd + 1]
 
         if (typeof prevKf.value === 'number' && typeof nextKf.value === 'number') {
-          console.log('num interp')
+          debug && console.log('num interp')
           dispatch({
             type: 'set_entity_param',
             id: entityId,
@@ -92,7 +92,7 @@ export function useRerender({
           })
           // assume all string props are colors for now
         } else {
-          console.log('color interp')
+          debug && console.log('color interp')
           dispatch({
             type: 'set_entity_param',
             id: entityId,
@@ -112,4 +112,223 @@ export function useRerender({
       }
     }
   }, [currentTime, dispatch, keyframesByEntity])
+}
+
+export function useUrlStateRestore(entities: Entity[], dispatch: (action: CoreAction) => void) {
+  const params = useSearchParams()
+  const paramState = params.get('s')
+
+  useEffect(() => {
+    if (!paramState || entities.length > 0) return
+    ;(async () => {
+      try {
+        const restoredState = await base64ToState(paramState)
+        console.log(restoredState)
+        setTimeout(() => {
+          dispatch({ type: 'replace_state', newState: restoredState })
+        }, 10)
+      } catch (err) {
+        alert(err)
+        console.error(err)
+      }
+    })()
+  }, [dispatch, entities.length, paramState])
+}
+
+export function useSelections(
+  entities: Entity[],
+  currentTime: number,
+  dispatch: (action: CoreAction) => void
+) {
+  const [selectedEntityIds, setSelectedEntityIds] = useState<string[]>([])
+  const selectedEntity = selectedEntityIds[0]
+    ? entities.find((e) => e.id === selectedEntityIds[0])
+    : undefined
+  const selectedEntities = entities.filter((e) => selectedEntityIds.includes(e.id))
+
+  const [selectionRect, setSelectionRect] = useState({
+    isShown: false,
+    x1: 0,
+    y1: 0,
+    x2: 0,
+    y2: 0,
+  })
+
+  const transformerRef = useRef<Konva.Transformer>(null)
+
+  useEffect(() => {
+    if (!transformerRef.current) return
+
+    if (!selectedEntityIds.length) {
+      transformerRef.current.nodes([])
+      return
+    }
+
+    const nodes = selectedEntityIds.map((id) => externalState.entityRefs[id]).filter((ref) => !!ref)
+
+    transformerRef.current.nodes(nodes)
+  }, [selectedEntityIds])
+
+  const stageOnClick = useCallback(() => {
+    debug && console.log('stage onclick')
+    setSelectedEntityIds([])
+  }, [])
+
+  const stageOnMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (e.target.id() !== 'arena-image') {
+      return
+    }
+
+    const { x, y } = e.target.getStage()?.getPointerPosition() ?? {}
+    if (x === undefined || y === undefined) return
+
+    setSelectionRect({
+      isShown: true,
+      x1: x,
+      y1: y,
+      x2: x,
+      y2: y,
+    })
+  }, [])
+
+  const stageOnMouseMove = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (!selectionRect.isShown) return
+
+      const { x, y } = e.target.getStage()?.getPointerPosition() ?? {}
+
+      if (x === undefined || y === undefined) return
+
+      setSelectionRect((selectionRect) => ({
+        ...selectionRect,
+        x2: x,
+        y2: y,
+      }))
+    },
+    [selectionRect.isShown]
+  )
+
+  const stageOnMouseUp = useCallback(() => {
+    if (!selectionRect.isShown) return
+
+    setSelectionRect((selectionRect) => ({
+      ...selectionRect,
+      isShown: false,
+    }))
+
+    const selection = {
+      x: Math.min(selectionRect.x1, selectionRect.x2),
+      y: Math.min(selectionRect.y1, selectionRect.y2),
+      width: Math.abs(selectionRect.x2 - selectionRect.x1),
+      height: Math.abs(selectionRect.y2 - selectionRect.y1),
+    }
+
+    setSelectedEntityIds(
+      entities
+        .filter(({ props }) =>
+          Konva.Util.haveIntersection(selection, {
+            x: props.x,
+            y: props.y,
+            width: props.width ?? props.radius! * 2,
+            height: props.height ?? props.radius! * 2,
+          })
+        )
+        .map((e) => e.id)
+    )
+  }, [
+    entities,
+    selectionRect.isShown,
+    selectionRect.x1,
+    selectionRect.x2,
+    selectionRect.y1,
+    selectionRect.y2,
+  ])
+
+  const onTransformEnd = () => {
+    transformerRef.current!.nodes().forEach((node) => {
+      if (node.getClassName() === 'Rect') {
+        dispatch({
+          type: 'set_entity_param',
+          id: node.id(),
+          param: 'width',
+          value: round(node.width() * node.scaleX()),
+          autoKf: true,
+          updateKf: true,
+          currentTime,
+        })
+        dispatch({
+          type: 'set_entity_param',
+          id: node.id(),
+          param: 'height',
+          value: round(node.height() * node.scaleY()),
+          autoKf: true,
+          updateKf: true,
+          currentTime,
+        })
+        node.scaleX(1)
+        node.scaleY(1)
+      }
+
+      if (node.getClassName() === 'Circle') {
+        dispatch({
+          type: 'set_entity_param',
+          id: node.id(),
+          param: 'radius',
+          value: round((node as Konva.Circle).radius() * node.scaleX()),
+          autoKf: true,
+          updateKf: true,
+          currentTime,
+        })
+        node.scaleX(1)
+        node.scaleY(1)
+      }
+
+      if (node.getClassName() === 'Arrow') {
+        dispatch({
+          type: 'set_entity_param',
+          id: node.id(),
+          param: 'scaleX',
+          value: round(node.scaleX()),
+          autoKf: true,
+          updateKf: true,
+          currentTime,
+        })
+        dispatch({
+          type: 'set_entity_param',
+          id: node.id(),
+          param: 'scaleY',
+          value: round(node.scaleY()),
+          autoKf: true,
+          updateKf: true,
+          currentTime,
+        })
+      }
+
+      dispatch({
+        type: 'set_entity_param',
+        id: node.id(),
+        param: 'rotation',
+        value: round(node.rotation()),
+        autoKf: true,
+        updateKf: true,
+        currentTime,
+      })
+
+      node.rotate(0)
+    })
+  }
+
+  return {
+    selectedEntityIds,
+    setSelectedEntityIds,
+    selectedEntity,
+    selectedEntities,
+    selectionRect,
+    transformerRef,
+    stageOnClick,
+    stageOnMouseDown,
+    stageOnMouseMove,
+    stageOnMouseUp,
+    onTransformEnd,
+  }
 }

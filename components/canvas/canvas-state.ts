@@ -1,11 +1,12 @@
 import { enableMapSet, produce } from 'immer'
 import { nanoid } from 'nanoid'
+import { debug } from '@/components/canvas/canvas'
 
 enableMapSet()
 
 export interface Entity {
   id: string
-  type: 'melee' | 'ranged' | 'healer' | 'tank' | 'rect' | 'circle'
+  type: 'melee' | 'ranged' | 'healer' | 'tank' | 'rect' | 'circle' | 'arrow'
   props: EntityProps
 }
 
@@ -19,6 +20,9 @@ export interface EntityProps {
   fill?: string
   radius?: number
   rotation?: number
+  stroke?: string
+  scaleX?: number
+  scaleY?: number
 }
 
 export type EntityPropName = keyof EntityProps
@@ -71,11 +75,9 @@ export const initialState = {
   keyframesByEntity: {},
 }
 
-const shouldLogStateChanges = true
-
 export function coreReducer(state: CoreState, action: CoreAction): CoreState {
-  if (shouldLogStateChanges) {
-    console.log('new state:')
+  if (debug) {
+    console.log('state change from:')
     console.log(state)
   }
 

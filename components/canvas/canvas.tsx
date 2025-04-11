@@ -4,23 +4,23 @@
 /* eslint-disable jsx-a11y/alt-text */
 
 import { Layer, Stage, Image, Rect, Transformer } from 'react-konva'
-import { useEffect, useReducer, useRef, useState } from 'react'
+import { useCallback, useMemo, useReducer, useRef, useState } from 'react'
 import { ArenaPicker } from '@/components/arena-picker'
 import { Menu } from '@/components/menu'
 import { VerticalMenu } from '@/components/vertical-menu'
 import { ContextMenu } from '@/components/context-menu'
 import { EntityList } from '@/components/entity-list'
 import { EntityPropEditor } from '@/components/entity-prop-editor'
-import { useKonvaContextMenu, useRerender } from './canvas-hooks'
-import { base64ToState, kfsToWaapi, makeEntity, stateToBase64 } from './canvas-utils'
-import { coreReducer, initialState } from './canvas-state'
+import { useKonvaContextMenu, useRerender, useSelections, useUrlStateRestore } from './canvas-hooks'
+import { kfsToWaapi, makeEntity, stateToBase64 } from './canvas-utils'
+import { coreReducer, Entity, initialState } from './canvas-state'
 import { Entities } from '@/components/entities'
 import Konva from 'konva'
-import { externalState } from '@/components/canvas/external-state'
 import { KfTimeline } from '@/components/kf-timeline'
 import { Timeline } from '@/components/timeline'
-import { round } from '@/utils'
-import { useSearchParams } from 'next/navigation'
+import { Box } from 'konva/lib/shapes/Transformer'
+
+export const debug = true
 
 export const width = 600
 export const height = 600
@@ -40,59 +40,28 @@ export function Canvas() {
   const [isPlaying, setIsPlaying] = useState(false)
   const playerInterval = useRef<number | null>(null)
 
-  const [selectedEntityIds, setSelectedEntityIds] = useState<string[]>([])
-  const selectedEntity = selectedEntityIds[0]
-    ? entities.find((e) => e.id === selectedEntityIds[0])
-    : undefined
-  const selectedEntities = entities.filter((e) => selectedEntityIds.includes(e.id))
-
-  const [selectionRect, setSelectionRect] = useState({
-    isShown: false,
-    x1: 0,
-    y1: 0,
-    x2: 0,
-    y2: 0,
-  })
-
-  const transformerRef = useRef<Konva.Transformer>(null)
-
-  useEffect(() => {
-    if (!transformerRef.current) return
-
-    if (!selectedEntityIds.length) {
-      transformerRef.current.nodes([])
-      return
-    }
-
-    const nodes = selectedEntityIds.map((id) => externalState.entityRefs[id]).filter((ref) => !!ref)
-
-    transformerRef.current.nodes(nodes)
-  }, [selectedEntityIds])
+  const {
+    selectedEntityIds,
+    setSelectedEntityIds,
+    selectedEntity,
+    selectedEntities,
+    selectionRect,
+    transformerRef,
+    stageOnClick,
+    stageOnMouseDown,
+    stageOnMouseMove,
+    stageOnMouseUp,
+    onTransformEnd,
+  } = useSelections(entities, currentTime, dispatch)
 
   useRerender({ keyframesByEntity, currentTime, dispatch })
 
-  console.log('canvas rerender')
+  useUrlStateRestore(entities, dispatch)
 
-  const params = useSearchParams()
-  const paramState = params.get('s')
+  debug && console.log('canvas rerender')
+  debug && console.log('new state')
+  debug && console.log(state)
 
-  useEffect(() => {
-    if (!paramState || entities.length > 0) return
-    ;(async () => {
-      try {
-        const restoredState = await base64ToState(paramState)
-        console.log(restoredState)
-        setTimeout(() => {
-          dispatch({ type: 'replace_state', newState: restoredState })
-        }, 10)
-      } catch (err) {
-        alert(err)
-        console.error(err)
-      }
-    })()
-  }, [entities.length, paramState])
-
-  // http://localhost:3000?s=G48ACI7URjVTnI5Q6UbM7dMU0SimaZYRu66PWVuid4iksAYg0ADsBgcSBZQEBFE-4SA68WXJ1ELzrTSUBpvZzofl3Hy0MP6zIvC1MgBUwDE64BimmCJJUikr8bJc-bDk0h9a4xjCwwgEld5v2gE7AkAc9N2uHEUKemZ0HQ
   return (
     <div className='grid grid-cols-[1fr_auto_1fr] grid-rows-[auto_1fr_auto_auto]'>
       {selectedEntityIds.length > 0 && (
@@ -100,7 +69,7 @@ export function Canvas() {
           className='col-start-1 row-start-1 row-span-3'
           entities={selectedEntities}
           onPropChange={(propName, value) => {
-            console.log('onPropChange')
+            debug && console.log('onPropChange')
 
             selectedEntities.forEach((e) =>
               dispatch({
@@ -131,6 +100,7 @@ export function Canvas() {
         className='col-start-2'
         onClear={() => {
           dispatch({ type: 'reset' })
+          setSelectedEntityIds([])
           window.history.replaceState({}, '', '/')
         }}
         onWaapiExport={() => {
@@ -153,33 +123,8 @@ export function Canvas() {
       />
       <VerticalMenu
         className='col-start-1 row-start-2 self-end justify-self-end'
-        onMeleeAdd={() => {
-          const entity = makeEntity('melee')
-          dispatch({ type: 'add_entity', entity })
-          setSelectedEntityIds([entity.id])
-        }}
-        onRangedAdd={() => {
-          const entity = makeEntity('ranged')
-          dispatch({ type: 'add_entity', entity })
-          setSelectedEntityIds([entity.id])
-        }}
-        onHealerAdd={() => {
-          const entity = makeEntity('healer')
-          dispatch({ type: 'add_entity', entity })
-          setSelectedEntityIds([entity.id])
-        }}
-        onTankAdd={() => {
-          const entity = makeEntity('tank')
-          dispatch({ type: 'add_entity', entity })
-          setSelectedEntityIds([entity.id])
-        }}
-        onRectAdd={() => {
-          const entity = makeEntity('rect')
-          dispatch({ type: 'add_entity', entity })
-          setSelectedEntityIds([entity.id])
-        }}
-        onCircAdd={() => {
-          const entity = makeEntity('circle')
+        onEntityAdd={(type: Entity['type']) => {
+          const entity = makeEntity(type)
           dispatch({ type: 'add_entity', entity })
           setSelectedEntityIds([entity.id])
         }}
@@ -192,67 +137,10 @@ export function Canvas() {
           width={width}
           height={height}
           className='bg-gray-600'
-          onClick={() => {
-            console.log('stage onclick')
-            setSelectedEntityIds([])
-          }}
-          onMouseDown={(e) => {
-            if (e.target.id() !== 'arena-image') {
-              return
-            }
-
-            const { x, y } = e.target.getStage()?.getPointerPosition() ?? {}
-            if (x === undefined || y === undefined) return
-
-            setSelectionRect({
-              isShown: true,
-              x1: x,
-              y1: y,
-              x2: x,
-              y2: y,
-            })
-          }}
-          onMouseMove={(e) => {
-            if (!selectionRect.isShown) return
-
-            const { x, y } = e.target.getStage()?.getPointerPosition() ?? {}
-            console.log(`x ${x} y ${y}`)
-            if (x === undefined || y === undefined) return
-
-            setSelectionRect((selectionRect) => ({
-              ...selectionRect,
-              x2: x,
-              y2: y,
-            }))
-          }}
-          onMouseUp={() => {
-            if (!selectionRect.isShown) return
-
-            setSelectionRect((selectionRect) => ({
-              ...selectionRect,
-              isShown: false,
-            }))
-
-            const selection = {
-              x: Math.min(selectionRect.x1, selectionRect.x2),
-              y: Math.min(selectionRect.y1, selectionRect.y2),
-              width: Math.abs(selectionRect.x2 - selectionRect.x1),
-              height: Math.abs(selectionRect.y2 - selectionRect.y1),
-            }
-
-            setSelectedEntityIds(
-              entities
-                .filter(({ props }) =>
-                  Konva.Util.haveIntersection(selection, {
-                    x: props.x,
-                    y: props.y,
-                    width: props.width ?? props.radius! * 2,
-                    height: props.height ?? props.radius! * 2,
-                  })
-                )
-                .map((e) => e.id)
-            )
-          }}
+          onClick={stageOnClick}
+          onMouseDown={stageOnMouseDown}
+          onMouseMove={stageOnMouseMove}
+          onMouseUp={stageOnMouseUp}
         >
           <Layer>
             <Image
@@ -285,69 +173,38 @@ export function Canvas() {
               />
             )}
             <Transformer
+              id='transformer'
+              // allows dragging from empty space in a transformer box
+              shouldOverdrawWholeArea
+              centeredScaling
               rotateLineVisible={false}
               anchorSize={6}
               anchorStrokeWidth={1}
               rotateAnchorOffset={20}
-              rotationSnaps={Array(32)
-                .fill(0)
-                .map((_, ind) => (ind * 360) / 32)}
+              rotationSnaps={useMemo(
+                () =>
+                  Array(32)
+                    .fill(0)
+                    .map((_, ind) => (ind * 360) / 32),
+                []
+              )}
               ref={transformerRef}
-              onTransformEnd={() => {
-                transformerRef.current!.nodes().forEach((node) => {
-                  if (node.getClassName() === 'Rect') {
-                    dispatch({
-                      type: 'set_entity_param',
-                      id: node.id(),
-                      param: 'width',
-                      value: round(node.width() * node.scaleX()),
-                      autoKf: true,
-                      updateKf: true,
-                      currentTime,
-                    })
-                    dispatch({
-                      type: 'set_entity_param',
-                      id: node.id(),
-                      param: 'height',
-                      value: round(node.height() * node.scaleY()),
-                      autoKf: true,
-                      updateKf: true,
-                      currentTime,
-                    })
-                  }
-
-                  if (node.getClassName() === 'Circle') {
-                    dispatch({
-                      type: 'set_entity_param',
-                      id: node.id(),
-                      param: 'radius',
-                      value: round((node as Konva.Circle).radius() * node.scaleX()),
-                      autoKf: true,
-                      updateKf: true,
-                      currentTime,
-                    })
-                  }
-
-                  dispatch({
-                    type: 'set_entity_param',
-                    id: node.id(),
-                    param: 'rotation',
-                    value: round(node.rotation()),
-                    autoKf: true,
-                    updateKf: true,
-                    currentTime,
-                  })
-                  node.scaleX(1)
-                  node.scaleY(1)
-                  node.rotate(0)
-                })
+              onTransformEnd={onTransformEnd}
+              boundBoxFunc={useCallback((oldBox: Box, newBox: Box) => {
+                // min resize
+                return newBox.width < 10 || newBox.height < 10 ? oldBox : newBox
+              }, [])}
+              onDragStart={(e) => {
+                e.target.getStage()!.container().style.cursor = 'grabbing'
               }}
-              boundBoxFunc={(oldBox, newBox) => {
-                // Limit resize
-                if (newBox.width < 5 || newBox.height < 5) {
-                  return oldBox
-                }
-                return newBox
+              onMouseOver={(e) => {
+                e.target.getStage()!.container().style.cursor = 'pointer'
+              }}
+              onMouseUp={(e) => {
+                e.target.getStage()!.container().style.cursor = 'default'
+              }}
+              onMouseOut={(e) => {
+                e.target.getStage()!.container().style.cursor = 'default'
               }}
             />
           </Layer>

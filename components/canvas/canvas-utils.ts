@@ -2,7 +2,6 @@ import { CoreState, Entity, EntityPropName, EntityProps, Kf } from './canvas-sta
 import { height, width } from '@/components/canvas/canvas'
 import { nanoid } from 'nanoid'
 import { compressBrotli, round, uncompressBrotli } from '@/utils'
-import { load } from 'protobufjs'
 import { toByteArray, fromByteArray } from 'base64-js'
 import { encode, decode } from '@msgpack/msgpack'
 import { CSSProperties } from 'react'
@@ -92,6 +91,20 @@ export function makeEntity(type: Entity['type']): Entity {
           rotation: 0,
         },
       }
+    case 'arrow':
+      return {
+        id: nanoid(4),
+        type: 'arrow',
+        props: {
+          opacity: 1,
+          stroke: '#ffffff',
+          x: width / 2,
+          y: height / 2,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+        },
+      }
     default:
       throw new Error(`Unknown type ${type}`)
   }
@@ -110,6 +123,7 @@ export interface WaapiEntity {
 
 const konvaPropToWaapiProp: Partial<Record<EntityPropName, keyof CSSProperties>> = {
   fill: 'backgroundColor',
+  stroke: 'backgroundColor',
 }
 
 // uses top/left & width/height atm, not transforms
@@ -124,6 +138,7 @@ export function kfsToWaapi(entities: Entity[], keyframes: Kf[], duration: number
     const kfedProps: Set<keyof CSSProperties> = new Set()
 
     const waapiKeyframes = keyframes
+      .sort((a, b) => a.time - b.time)
       .filter((kf) => kf.entityId === e.id)
       .reduce((result, kf) => {
         const offset = round(kf.time / duration)
@@ -153,6 +168,22 @@ export function kfsToWaapi(entities: Entity[], keyframes: Kf[], duration: number
           }
           case 'rotation': {
             waapiPropValue['rotate'] = (kf.value as number) + 'deg'
+            break
+          }
+          case 'scaleX': {
+            const prevScaleYKf = keyframes.find(
+              (prevKf) =>
+                prevKf.entityId === e.id && prevKf.prop === 'scaleY' && prevKf.time <= kf.time
+            )
+            waapiPropValue['scale'] = `${kf.value} ${prevScaleYKf?.value ?? 1}`
+            break
+          }
+          case 'scaleY': {
+            const prevScaleXKf = keyframes.find(
+              (prevKf) =>
+                prevKf.entityId === e.id && prevKf.prop === 'scaleX' && prevKf.time <= kf.time
+            )
+            waapiPropValue['scale'] = `${prevScaleXKf?.value ?? 1} ${kf.value}`
             break
           }
           default: {
