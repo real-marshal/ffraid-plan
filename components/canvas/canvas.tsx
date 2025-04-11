@@ -36,6 +36,7 @@ export function Canvas() {
 
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(3)
+  const [fps, setFps] = useState(10)
 
   const [isPlaying, setIsPlaying] = useState(false)
   const playerInterval = useRef<number | null>(null)
@@ -226,10 +227,14 @@ export function Canvas() {
       <Timeline
         isPlaying={isPlaying}
         onPlay={(duration) => {
+          const frameDuration = 1 / fps
+
           setIsPlaying(true)
           playerInterval.current = window.setInterval(() => {
-            setCurrentTime((time) => Math.round((time >= duration ? 0 : time + 0.1) * 10) / 10)
-          }, 100)
+            setCurrentTime(
+              (time) => Math.round((time >= duration ? 0 : time + frameDuration) * 1000) / 1000
+            )
+          }, frameDuration * 1000)
         }}
         onPause={() => {
           setIsPlaying(false)
@@ -242,6 +247,8 @@ export function Canvas() {
         setCurrentTime={setCurrentTime}
         duration={duration}
         setDuration={setDuration}
+        fps={fps}
+        setFps={setFps}
       />
       <KfTimeline
         keyframesByEntity={keyframesByEntity}
