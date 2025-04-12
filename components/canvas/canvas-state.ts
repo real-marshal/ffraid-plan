@@ -21,7 +21,6 @@ export interface EntityProps {
   fill?: string
   radius?: number
   rotation?: number
-  stroke?: string
   scaleX?: number
   scaleY?: number
   image?: string

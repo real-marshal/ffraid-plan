@@ -1,8 +1,8 @@
 /* eslint-disable jsx-a11y/alt-text */
-import { Circle, Rect, Arrow, Image, Path, Ring } from 'react-konva'
+import { Circle, Rect, Image, Path, Ring } from 'react-konva'
 import { CoreAction, Entity, EntityProps } from '@/components/canvas/canvas-state'
 import Konva from 'konva'
-import { externalState } from '@/components/canvas/external-state'
+import { externalState, svgEntityDimensions } from '@/components/canvas/external-state'
 import { round } from '@/utils'
 import useImage from 'use-image'
 
@@ -92,23 +92,17 @@ export function Entities({
         )
       case 'circle':
         return <Circle key={entity.id} {...entity.props} {...commonProps} />
+      case 'triangle':
       case 'arrow':
-        // waapi export depends on these dimensions
-        const length = 100
         return (
-          <Arrow
+          <Path
             key={entity.id}
             {...entity.props}
             {...commonProps}
-            offsetX={length / 2}
-            points={[0, 0, length, 0]}
-            pointerLength={20}
-            pointerWidth={20}
-            strokeWidth={10}
+            offsetX={(svgEntityDimensions[entity.type]?.width ?? 0) / 2}
+            offsetY={(svgEntityDimensions[entity.type]?.height ?? 0) / 2}
           />
         )
-      case 'triangle':
-        return <Path key={entity.id} {...entity.props} {...commonProps} offsetX={40} offsetY={65} />
       case 'ring': {
         return (
           <Ring key={entity.id} {...(entity.props as Required<EntityProps>)} {...commonProps} />

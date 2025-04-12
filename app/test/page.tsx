@@ -1,75 +1,25 @@
 'use client'
 
-import { CSSProperties, Ref, useEffect, useRef } from 'react'
-import { Arrow, arrowPathData, Triangle, trianglePathData } from '@/components/svg'
+import { CSSProperties, useEffect, useRef } from 'react'
+import { Arrow, Triangle } from '@/components/svg'
 
 const num = 10
 
 const waapiObj = [
   {
-    type: 'ring',
-    duration: 3000,
-    keyframes: [
-      { width: '50%', height: '50%', borderWidth: '25cqi', borderColor: '#ffffff' },
-      { width: '33.33%', height: '33.33%', borderWidth: '33.33cqi', offset: 0.33 },
-      { borderWidth: '16.67cqi', offset: 0.67, width: '33.33%', height: '33.33%' },
-      {
-        width: '66.67%',
-        height: '66.67%',
-        borderWidth: '33.33cqi',
-        offset: 1,
-        borderColor: '#a51d2d',
-      },
-    ],
-    initialValues: {
-      opacity: 1,
-      position: 'absolute',
-      translate: '-50% -50%',
-      left: '0%',
-      top: '0%',
-      width: '50%',
-      height: '50%',
-      rotate: '0deg',
-      borderWidth: '25cqi',
-      borderColor: '#ffffff',
-      borderRadius: '50%',
-      backgroundColor: 'transparent',
-      boxSizing: 'content-box',
-    },
-  },
-  {
     type: 'triangle',
-    duration: 3000,
-    keyframes: [
-      { scale: '1 1' },
-      { scale: '1 4.46', offset: 0.33 },
-      { scale: '5.97 0.37', offset: 0.67 },
-      { scale: '4.52 2.17', offset: 1 },
-    ],
-    initialValues: {
-      opacity: 1,
-      position: 'absolute',
-      translate: '-50% -50%',
-      left: '50%',
-      top: '50%',
-      width: '13.33%',
-      rotate: '0deg',
-      scale: '1 1',
-    },
-  },
-  {
-    type: 'arrow',
     duration: 3000,
     keyframes: [],
     initialValues: {
-      opacity: 1,
+      opacity: 0.6,
+      fill: '#c64600',
       position: 'absolute',
       translate: '-50% -50%',
-      left: '50%',
-      top: '50%',
-      width: '18.33%',
-      rotate: '0deg',
-      fill: '#ffffff',
+      left: '41.33%',
+      top: '54.17%',
+      width: '13.33%',
+      rotate: '90deg',
+      scale: '2.35 3.15',
     },
   },
 ]
@@ -197,21 +147,21 @@ export default function TestPage() {
 
 // http://localhost:3000/?s=G0cDIIyU7iLLBuf2nf5GpRLF2--YS9VMdM-E7qXTCxkt6K5OG98NUoBKA987kpRSLRMLhivgg3-InvSdm9fqKrpKVEd_6xxj-WqqmopVhp11KrolCWluW20VY7tQuVxo7IrlQrEyOBQafQT7SrVcyMQOX-DHqiletZBjuVBtYA3tc2qcYO9c4JSJtUKbKoseweqkmBBn21LRWRwuMtoKqqGdzBhA2ARtoqngorKkXuprfCyAqEBE9GPVeg0IKRfWDJImiBkd-XgEAbDJRMjUlrTmN7jPN1G10RIhguWJMTrxGMqWtJRk6HpEyWc1R_QI6t--SI1UEIBmBlsB3peFfCnvG-GYO3jyCkNNgEXopn-P8zBzhGLZkg81Y76LN7Na9whv7mO0Vr6IWA
 
-function Ring({
-  style,
-  ref,
-}: {
-  style: CSSProperties
-  className?: string
-  ref: Ref<SVGSVGElement>
-}) {
-  // w,h = (innerRadius * 2) / canvasW/H
-  // outline = (outerRadius - innerRadius) / canvasW/H
-  return (
-    <div className='absolute w-[50%] h-[50%] bg-transparent -translate-1/2 rounded-full box-content border-[25cqi] border-[red]'></div>
-    // <div className='absolute w-[100%] h-[100%] bg-[red] -translate-1/2 rounded-full after:block after:bg-transparent after:w-[400px] after:h-[400px] after:absolute after:z-[100]'></div>
-  )
-}
+// function Ring({
+//   style,
+//   ref,
+// }: {
+//   style: CSSProperties
+//   className?: string
+//   ref: Ref<SVGSVGElement>
+// }) {
+//   // w,h = (innerRadius * 2) / canvasW/H
+//   // outline = (outerRadius - innerRadius) / canvasW/H
+//   return (
+//     <div className='absolute w-[50%] h-[50%] bg-transparent -translate-1/2 rounded-full box-content border-[25cqi] border-[red]'></div>
+//     // <div className='absolute w-[100%] h-[100%] bg-[red] -translate-1/2 rounded-full after:block after:bg-transparent after:w-[400px] after:h-[400px] after:absolute after:z-[100]'></div>
+//   )
+// }
 
 // ring
 // {

@@ -1,11 +1,11 @@
 import { CoreState, Entity, EntityPropName, EntityProps, Kf } from './canvas-state'
-import { height, width } from '@/components/canvas/external-state'
+import { height, svgEntityDimensions, width } from '@/components/canvas/external-state'
 import { nanoid } from 'nanoid'
 import { compressBrotli, round, uncompressBrotli } from '@/utils'
 import { toByteArray, fromByteArray } from 'base64-js'
 import { encode, decode } from '@msgpack/msgpack'
 import { CSSProperties } from 'react'
-import { trianglePathData } from '@/components/svg'
+import { arrowPathData, trianglePathData } from '@/components/svg'
 
 export function makeEntity(type: Entity['type']): Entity {
   switch (type) {
@@ -105,12 +105,13 @@ export function makeEntity(type: Entity['type']): Entity {
         selectable: true,
         props: {
           opacity: 1,
-          stroke: '#ffffff',
+          fill: '#ffffff',
           x: width / 2,
           y: height / 2,
           rotation: 0,
           scaleX: 1,
           scaleY: 1,
+          data: arrowPathData,
         },
       }
     case 'triangle':
@@ -170,8 +171,8 @@ const konvaPropToWaapiPropMap: Partial<
     default: 'backgroundColor',
     ring: 'borderColor',
     triangle: 'fill',
+    arrow: 'fill',
   },
-  stroke: 'fill',
 }
 
 function konvaPropToWaapiProp(prop: EntityPropName, entityType: Entity['type']) {
@@ -333,13 +334,9 @@ export function kfsToWaapi(
         round(
           (((e.props.width ?? e.type === 'circle')
             ? e.props.radius! * 2
-            : e.type === 'arrow'
-              ? 110
-              : e.type === 'ring'
-                ? e.props.innerRadius! * 2
-                : e.type === 'triangle'
-                  ? 80
-                  : NaN) /
+            : e.type === 'ring'
+              ? e.props.innerRadius! * 2
+              : (svgEntityDimensions[e.type]?.width ?? NaN)) /
             width) *
             100
         ) + '%',
@@ -347,11 +344,9 @@ export function kfsToWaapi(
         round(
           (((e.props.height ?? e.type === 'circle')
             ? e.props.radius! * 2
-            : e.type === 'arrow'
-              ? 40
-              : e.type === 'ring'
-                ? e.props.innerRadius! * 2
-                : NaN) /
+            : e.type === 'ring'
+              ? e.props.innerRadius! * 2
+              : NaN) /
             height) *
             100
         ) + '%',
@@ -366,10 +361,12 @@ export function kfsToWaapi(
     if (e.type === 'circle') {
       initialValues.borderRadius = '50%'
     }
-
     // svg breaks with both dimensions specified
-    if (e.type === 'arrow') {
+    if (e.type === 'arrow' || e.type === 'triangle') {
+      delete initialValues.data
       delete initialValues.height
+
+      initialValues.scale = `${initialValues.scaleX} ${initialValues.scaleY}`
     }
 
     if (e.type === 'ring') {
@@ -378,11 +375,6 @@ export function kfsToWaapi(
       initialValues.boxSizing = 'content-box'
     } else {
       delete initialValues.borderWidth
-    }
-
-    if (e.type === 'triangle') {
-      delete initialValues.data
-      delete initialValues.height
     }
 
     delete initialValues.x
@@ -395,11 +387,11 @@ export function kfsToWaapi(
     delete initialValues.outerRadius
 
     for (const konvaProp in konvaPropToWaapiPropMap) {
+      const cssProp = konvaPropToWaapiProp(konvaProp as EntityPropName, e.type)
       // @ts-expect-error crazy bitch..
-      initialValues[konvaPropToWaapiProp(konvaProp, e.type)] = (
-        initialValues as Partial<EntityProps>
-      )[konvaProp as EntityPropName]
-      delete (initialValues as Partial<EntityProps>)[konvaProp as EntityPropName]
+      initialValues[cssProp] = (initialValues as Partial<EntityProps>)[konvaProp as EntityPropName]
+      cssProp !== konvaProp &&
+        delete (initialValues as Partial<EntityProps>)[konvaProp as EntityPropName]
     }
 
     return {

@@ -351,7 +351,7 @@ export function useSelections(
         node.scaleY(1)
       }
 
-      if (node.getClassName() === 'Arrow' || node.getClassName() === 'Path') {
+      if (node.getClassName() === 'Path') {
         dispatch({
           type: 'set_entity_param',
           id: node.id(),

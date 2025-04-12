@@ -38,7 +38,7 @@ export const entityTypeToProps: Record<Entity['type'], PropDescription[]> = {
   circle: [...baseProps, { name: 'radius', type: 'number' }, { name: 'fill', type: 'color' }],
   arrow: [
     ...baseProps,
-    { name: 'stroke', type: 'color' },
+    { name: 'fill', type: 'color' },
     { name: 'scaleX', type: 'number', min: 0, max: 100 },
     { name: 'scaleY', type: 'number', min: 0, max: 100 },
   ],
