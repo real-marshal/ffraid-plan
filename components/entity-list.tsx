@@ -6,12 +6,14 @@ export function EntityList({
   selectedEntityIds,
   keyframesByEntity,
   onEntitySelect,
+  onEntitySelectableToggle,
   className,
 }: {
   entities: Entity[]
   selectedEntityIds: string[]
   keyframesByEntity: KfsByEntity
   onEntitySelect: (entityId: string) => void
+  onEntitySelectableToggle: (entityId: string) => void
   className?: string
 }) {
   return (
@@ -23,6 +25,7 @@ export function EntityList({
               <tr>
                 <th>type</th>
                 <th>id</th>
+                <th>SL</th>
                 <th>KF</th>
               </tr>
             </thead>
@@ -40,6 +43,16 @@ export function EntityList({
                 >
                   <td>{entity.type}</td>
                   <td>{entity.id}</td>
+                  <td>
+                    <label>
+                      <input
+                        type='checkbox'
+                        className='checkbox cursor-default'
+                        checked={entity.selectable}
+                        onChange={() => onEntitySelectableToggle(entity.id)}
+                      />
+                    </label>
+                  </td>
                   <td>
                     <label>
                       <input

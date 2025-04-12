@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/alt-text */
-import { Circle, Rect, Arrow, Image } from 'react-konva'
+import { Circle, Rect, Arrow, Image, Path, Ring } from 'react-konva'
 import { CoreAction, Entity, EntityProps } from '@/components/canvas/canvas-state'
 import Konva from 'konva'
 import { externalState } from '@/components/canvas/external-state'
@@ -27,9 +27,11 @@ export function Entities({
       ref: (ref: Konva.Node | null) => {
         externalState.entityRefs[entity.id] = ref
       },
-      draggable: true,
+      draggable: entity.selectable,
       onContextMenu: onContextMenu(entity.id),
       onClick: (e: Konva.KonvaEventObject<MouseEvent>) => {
+        if (!entity.selectable) return
+
         setSelectedEntityIds([entity.id])
         e.cancelBubble = true
       },
@@ -105,6 +107,13 @@ export function Entities({
             strokeWidth={10}
           />
         )
+      case 'triangle':
+        return <Path key={entity.id} {...entity.props} {...commonProps} offsetX={40} offsetY={65} />
+      case 'ring': {
+        return (
+          <Ring key={entity.id} {...(entity.props as Required<EntityProps>)} {...commonProps} />
+        )
+      }
       default:
         alert('Unknown entity type')
     }

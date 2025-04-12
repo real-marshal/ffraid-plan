@@ -6,7 +6,8 @@ enableMapSet()
 
 export interface Entity {
   id: string
-  type: 'melee' | 'ranged' | 'healer' | 'tank' | 'rect' | 'circle' | 'arrow'
+  type: 'melee' | 'ranged' | 'healer' | 'tank' | 'rect' | 'circle' | 'arrow' | 'triangle' | 'ring'
+  selectable: boolean
   props: EntityProps
 }
 
@@ -24,6 +25,9 @@ export interface EntityProps {
   scaleX?: number
   scaleY?: number
   image?: string
+  data?: string
+  innerRadius?: number
+  outerRadius?: number
 }
 
 export type EntityPropName = keyof EntityProps
@@ -56,6 +60,7 @@ export type CoreAction =
   | { type: 'replace_state'; newState: CoreState }
   | { type: 'add_entity'; entity: Entity }
   | { type: 'delete_entity'; id: string }
+  | { type: 'toggle_selectable'; id: string }
   | {
       type: 'set_entity_param'
       id: string
@@ -104,6 +109,14 @@ export function coreReducer(state: CoreState, action: CoreAction): CoreState {
 
         draft.keyframes = draft.keyframes.filter((kf) => kf.entityId !== action.id)
         draft.keyframesByEntity = generateKfsByEntity(draft.keyframes)
+      })
+    }
+    case 'toggle_selectable': {
+      return produce(state, (draft) => {
+        const entity = draft.entities.find((e) => e.id === action.id)
+        if (!entity) throw new Error('No entity with id ' + action.id)
+
+        entity.selectable = !entity.selectable
       })
     }
     case 'set_entity_param': {

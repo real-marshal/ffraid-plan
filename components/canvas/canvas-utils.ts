@@ -1,10 +1,11 @@
 import { CoreState, Entity, EntityPropName, EntityProps, Kf } from './canvas-state'
-import { height, width } from '@/components/canvas/canvas'
+import { height, width } from '@/components/canvas/external-state'
 import { nanoid } from 'nanoid'
 import { compressBrotli, round, uncompressBrotli } from '@/utils'
 import { toByteArray, fromByteArray } from 'base64-js'
 import { encode, decode } from '@msgpack/msgpack'
 import { CSSProperties } from 'react'
+import { trianglePathData } from '@/components/svg'
 
 export function makeEntity(type: Entity['type']): Entity {
   switch (type) {
@@ -12,6 +13,7 @@ export function makeEntity(type: Entity['type']): Entity {
       return {
         id: nanoid(4),
         type: 'melee',
+        selectable: true,
         props: {
           opacity: 1,
           x: width / 2,
@@ -26,6 +28,7 @@ export function makeEntity(type: Entity['type']): Entity {
       return {
         id: nanoid(4),
         type: 'ranged',
+        selectable: true,
         props: {
           opacity: 1,
           x: width / 2,
@@ -40,6 +43,7 @@ export function makeEntity(type: Entity['type']): Entity {
       return {
         id: nanoid(4),
         type: 'healer',
+        selectable: true,
         props: {
           opacity: 1,
           x: width / 2,
@@ -53,7 +57,8 @@ export function makeEntity(type: Entity['type']): Entity {
     case 'tank':
       return {
         id: nanoid(4),
-        type: 'melee',
+        type: 'tank',
+        selectable: true,
         props: {
           opacity: 1,
           x: width / 2,
@@ -68,6 +73,7 @@ export function makeEntity(type: Entity['type']): Entity {
       return {
         id: nanoid(4),
         type: 'rect',
+        selectable: true,
         props: {
           opacity: 1,
           fill: '#ffffff',
@@ -82,6 +88,7 @@ export function makeEntity(type: Entity['type']): Entity {
       return {
         id: nanoid(4),
         type: 'circle',
+        selectable: true,
         props: {
           opacity: 1,
           fill: '#ffffff',
@@ -95,6 +102,7 @@ export function makeEntity(type: Entity['type']): Entity {
       return {
         id: nanoid(4),
         type: 'arrow',
+        selectable: true,
         props: {
           opacity: 1,
           stroke: '#ffffff',
@@ -103,6 +111,37 @@ export function makeEntity(type: Entity['type']): Entity {
           rotation: 0,
           scaleX: 1,
           scaleY: 1,
+        },
+      }
+    case 'triangle':
+      return {
+        id: nanoid(4),
+        type: 'triangle',
+        selectable: true,
+        props: {
+          opacity: 1,
+          fill: '#ffffff',
+          x: width / 2,
+          y: height / 2,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          data: trianglePathData,
+        },
+      }
+    case 'ring':
+      return {
+        id: nanoid(4),
+        type: 'ring',
+        selectable: true,
+        props: {
+          opacity: 1,
+          fill: '#ffffff',
+          x: width / 2,
+          y: height / 2,
+          rotation: 0,
+          innerRadius: 20,
+          outerRadius: 40,
         },
       }
     default:

@@ -9,6 +9,12 @@ export function VerticalMenu({
 }) {
   return (
     <ul className={`menu bg-base-200 rounded-box ${className}`}>
+      <button className='btn btn-sm' onClick={() => onEntityAdd('ring')}>
+        ring
+      </button>
+      <button className='btn btn-sm' onClick={() => onEntityAdd('triangle')}>
+        trin
+      </button>
       <button className='btn btn-sm' onClick={() => onEntityAdd('arrow')}>
         arrw
       </button>

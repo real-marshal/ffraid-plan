@@ -39,8 +39,20 @@ export const entityTypeToProps: Record<Entity['type'], PropDescription[]> = {
   arrow: [
     ...baseProps,
     { name: 'stroke', type: 'color' },
-    { name: 'scaleX', type: 'number' },
-    { name: 'scaleY', type: 'number' },
+    { name: 'scaleX', type: 'number', min: 0, max: 100 },
+    { name: 'scaleY', type: 'number', min: 0, max: 100 },
+  ],
+  triangle: [
+    ...baseProps,
+    { name: 'fill', type: 'color' },
+    { name: 'scaleX', type: 'number', min: 0, max: 100 },
+    { name: 'scaleY', type: 'number', min: 0, max: 100 },
+  ],
+  ring: [
+    ...baseProps,
+    { name: 'fill', type: 'color' },
+    { name: 'innerRadius', type: 'number', min: 10, max: width / 2 },
+    { name: 'outerRadius', type: 'number', min: 15, max: width },
   ],
 }
 

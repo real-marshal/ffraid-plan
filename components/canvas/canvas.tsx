@@ -265,6 +265,9 @@ export function Canvas() {
         selectedEntityIds={selectedEntityIds}
         onEntitySelect={(id) => setSelectedEntityIds([id])}
         keyframesByEntity={keyframesByEntity}
+        onEntitySelectableToggle={(entityId) =>
+          dispatch({ type: 'toggle_selectable', id: entityId })
+        }
       />
     </div>
   )
