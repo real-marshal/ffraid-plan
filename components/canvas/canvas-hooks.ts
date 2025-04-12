@@ -6,7 +6,7 @@ import Color from 'color'
 import { useSearchParams } from 'next/navigation'
 import { base64ToState, makeEntity } from '@/components/canvas/canvas-utils'
 import { externalState } from '@/components/canvas/external-state'
-import { debug } from '@/components/canvas/canvas'
+import { debug } from '@/components/canvas/external-state'
 
 export function useKonvaContextMenu() {
   const [contextMenuState, setContextMenuState] = useState<{
@@ -268,13 +268,15 @@ export function useSelections(
 
     setSelectedEntityIds(
       entities
-        .filter(({ props }) =>
-          Konva.Util.haveIntersection(selection, {
-            x: props.x,
-            y: props.y,
-            width: props.width ?? props.radius! * 2,
-            height: props.height ?? props.radius! * 2,
-          })
+        .filter(
+          ({ props, selectable }) =>
+            selectable &&
+            Konva.Util.haveIntersection(selection, {
+              x: props.x,
+              y: props.y,
+              width: props.width ?? props.radius! * 2,
+              height: props.height ?? props.radius! * 2,
+            })
         )
         .map((e) => e.id)
     )
@@ -326,7 +328,30 @@ export function useSelections(
         node.scaleY(1)
       }
 
-      if (node.getClassName() === 'Arrow') {
+      if (node.getClassName() === 'Ring') {
+        dispatch({
+          type: 'set_entity_param',
+          id: node.id(),
+          param: 'innerRadius',
+          value: round((node as Konva.Ring).innerRadius() * node.scaleX()),
+          autoKf: true,
+          updateKf: true,
+          currentTime,
+        })
+        dispatch({
+          type: 'set_entity_param',
+          id: node.id(),
+          param: 'outerRadius',
+          value: round((node as Konva.Ring).outerRadius() * node.scaleX()),
+          autoKf: true,
+          updateKf: true,
+          currentTime,
+        })
+        node.scaleX(1)
+        node.scaleY(1)
+      }
+
+      if (node.getClassName() === 'Arrow' || node.getClassName() === 'Path') {
         dispatch({
           type: 'set_entity_param',
           id: node.id(),
@@ -387,6 +412,8 @@ export function useHotkeys({
 }) {
   useEffect(() => {
     const keyEventHandler = (e: KeyboardEvent) => {
+      if (externalState.isInputting) return
+
       switch (e.key) {
         case 'm': {
           const entity = makeEntity('melee')

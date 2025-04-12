@@ -25,11 +25,7 @@ import Konva from 'konva'
 import { KfTimeline } from '@/components/kf-timeline'
 import { Timeline } from '@/components/timeline'
 import { Box } from 'konva/lib/shapes/Transformer'
-
-export const debug = true
-
-export const width = 600
-export const height = 600
+import { debug, height, width } from '@/components/canvas/external-state'
 
 export function Canvas() {
   const [arena, setArena] = useState<ImageBitmap>()

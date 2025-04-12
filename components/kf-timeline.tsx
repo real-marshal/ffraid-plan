@@ -1,4 +1,4 @@
-import { width } from '@/components/canvas/canvas'
+import { width } from '@/components/canvas/external-state'
 import { clamp } from '@/utils'
 import { KfsByEntity } from '@/components/canvas/canvas-state'
 import { Fragment, useState } from 'react'

@@ -1,24 +1,27 @@
 import { Entity, EntityPropName, Kf } from '@/components/canvas/canvas-state'
 import { NumberInput } from '@/components/number-input'
+import { height, width } from '@/components/canvas/external-state'
 
 export type PropType = 'color' | 'number'
 
 export interface PropDescription {
   name: EntityPropName
   type: PropType
+  min?: number
+  max?: number
 }
 
 const baseProps: PropDescription[] = [
-  { name: 'opacity', type: 'number' },
-  { name: 'x', type: 'number' },
-  { name: 'y', type: 'number' },
-  { name: 'rotation', type: 'number' },
+  { name: 'opacity', type: 'number', min: 0, max: 1 },
+  { name: 'x', type: 'number', min: -width, max: width * 2 },
+  { name: 'y', type: 'number', min: -height, max: height * 2 },
+  { name: 'rotation', type: 'number', min: -360 * 10, max: 360 * 10 },
 ]
 
 const roleProps: PropDescription[] = [
   ...baseProps,
-  { name: 'width', type: 'number' },
-  { name: 'height', type: 'number' },
+  { name: 'width', type: 'number', min: 0, max: width },
+  { name: 'height', type: 'number', min: 0, max: height },
 ]
 
 export const entityTypeToProps: Record<Entity['type'], PropDescription[]> = {
@@ -28,8 +31,8 @@ export const entityTypeToProps: Record<Entity['type'], PropDescription[]> = {
   tank: roleProps,
   rect: [
     ...baseProps,
-    { name: 'width', type: 'number' },
-    { name: 'height', type: 'number' },
+    { name: 'width', type: 'number', min: 0, max: width },
+    { name: 'height', type: 'number', min: 0, max: height },
     { name: 'fill', type: 'color' },
   ],
   circle: [...baseProps, { name: 'radius', type: 'number' }, { name: 'fill', type: 'color' }],
@@ -62,7 +65,7 @@ export function EntityPropEditor({
   return (
     <div className={`flex flex-col gap-2 mr-10 ${className}`}>
       {entities.length > 0 &&
-        props.map(({ name, type }) => {
+        props.map(({ name, type, min, max }) => {
           const oneValue = entities[0].props[name]
           const value =
             entities.length === 1
@@ -85,10 +88,17 @@ export function EntityPropEditor({
           return (
             <label
               key={name}
-              className='input cursor-pointer flex flex-row justify-between items-center w-[200px]'
+              className='input cursor-pointer flex flex-row justify-between items-center w-[230px]'
             >
               <span className='label'>{name}</span>
-              <Input type={type} propName={name} onPropChange={onPropChange} value={value} />
+              <Input
+                type={type}
+                propName={name}
+                onPropChange={onPropChange}
+                value={value}
+                min={min}
+                max={max}
+              />
               <button
                 className='btn btn-xs p-1 m-0'
                 onClick={() => onKf(name)}
@@ -110,11 +120,15 @@ function Input({
   propName,
   onPropChange,
   value,
+  min,
+  max,
 }: {
   type: 'color' | 'number'
   propName: EntityPropName
   onPropChange: (propName: EntityPropName, value: number | string) => void
   value: number | string | undefined
+  min?: number
+  max?: number
 }) {
   switch (type) {
     case 'color':
@@ -132,8 +146,8 @@ function Input({
           value={(value as number) ?? 0}
           setValue={(v) => onPropChange(propName, v)}
           step={0.1}
-          min={-1000}
-          max={1000}
+          min={min ?? 0}
+          max={max ?? 1000}
         />
       )
     default:

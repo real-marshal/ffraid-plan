@@ -1,6 +1,6 @@
 import { enableMapSet, produce } from 'immer'
 import { nanoid } from 'nanoid'
-import { debug } from '@/components/canvas/canvas'
+import { debug } from '@/components/canvas/external-state'
 
 enableMapSet()
 
