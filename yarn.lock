@@ -2571,6 +2571,7 @@ __metadata:
     serve: ^14.2.4
     tailwindcss: ^4
     typescript: ^5
+    use-image: ^1.1.1
   languageName: unknown
   linkType: soft
 
@@ -5534,6 +5535,16 @@ __metadata:
   dependencies:
     punycode: ^2.1.0
   checksum: 7167432de6817fe8e9e0c9684f1d2de2bb688c94388f7569f7dbdb1587c9f4ca2a77962f134ec90be0cc4d004c939ff0d05acc9f34a0db39a3c797dada262633
+  languageName: node
+  linkType: hard
+
+"use-image@npm:^1.1.1":
+  version: 1.1.1
+  resolution: "use-image@npm:1.1.1"
+  peerDependencies:
+    react: ">=16.8.0"
+    react-dom: ">=16.8.0"
+  checksum: fd757f22d90da6cf2490418c8f65e321e783b714cbb6f36260fd61a333bf29b5241e5067b698617a18b93e31f8b70421ea2019cfc076be9c47c5646bad0b4283
   languageName: node
   linkType: hard
 

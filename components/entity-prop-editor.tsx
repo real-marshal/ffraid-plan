@@ -19,7 +19,6 @@ const roleProps: PropDescription[] = [
   ...baseProps,
   { name: 'width', type: 'number' },
   { name: 'height', type: 'number' },
-  { name: 'fill', type: 'color' },
 ]
 
 export const entityTypeToProps: Record<Entity['type'], PropDescription[]> = {

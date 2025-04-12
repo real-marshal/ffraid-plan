@@ -154,3 +154,18 @@ function Arrow({
     </svg>
   )
 }
+
+// ring
+// {
+//   translate: -50% -50%;
+//   font-size: 10em;
+//   display: inline-block;
+//   width: 200px;
+//   box-sizing: content-box;
+//   height: 200px;
+//   border: 0px solid red;
+//   border-radius:50%;
+//   position: relative;
+//   outline: 100px solid;
+//   outline-offset: 0px;
+// }

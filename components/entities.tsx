@@ -1,8 +1,10 @@
-import { Circle, Rect, Arrow } from 'react-konva'
-import { CoreAction, Entity } from '@/components/canvas/canvas-state'
+/* eslint-disable jsx-a11y/alt-text */
+import { Circle, Rect, Arrow, Image } from 'react-konva'
+import { CoreAction, Entity, EntityProps } from '@/components/canvas/canvas-state'
 import Konva from 'konva'
 import { externalState } from '@/components/canvas/external-state'
 import { round } from '@/utils'
+import useImage from 'use-image'
 
 export function Entities({
   entities,
@@ -69,11 +71,14 @@ export function Entities({
     }
 
     switch (entity.type) {
-      case 'rect':
       case 'melee':
       case 'ranged':
       case 'healer':
       case 'tank':
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { image: _, ...entityProps } = entity.props
+        return <RoleEntity key={entity.id} entity={entity} {...entityProps} {...commonProps} />
+      case 'rect':
         return (
           <Rect
             key={entity.id}
@@ -104,4 +109,18 @@ export function Entities({
         alert('Unknown entity type')
     }
   })
+}
+
+function RoleEntity({ entity, ...imageProps }: { entity: Entity } & Partial<Konva.ImageConfig>) {
+  const [image] = useImage(entity.props.image ?? '')
+
+  return (
+    <Image
+      {...entity.props}
+      {...imageProps}
+      image={image}
+      offsetX={entity.props.width! / 2}
+      offsetY={entity.props.height! / 2}
+    />
+  )
 }

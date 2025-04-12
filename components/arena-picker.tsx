@@ -12,10 +12,14 @@ export function ArenaPicker({ onPick }: { onPick: (arena: ImageBitmap) => void }
   })
 
   return (
-    <div className='absolute left-1/2 top-1/2 -translate-x-1/2 text-center border-2 cursor-pointer bg-gray-700 hover:bg-gray-800'>
+    <div className='absolute left-1/2 top-1/2 -translate-x-1/2 text-center border-1 cursor-pointer bg-gray-800 hover:bg-gray-900 rounded-md'>
       <div {...getRootProps({ className: 'dropzone' })}>
         <input {...getInputProps()} />
-        <p className='p-2'>Drag & drop an arena image or click to open the file dialog</p>
+        <p className='p-2 leading-5 text-sm'>
+          Drag & drop an arena image or click to open the file dialog.
+          <br />
+          The image won't be exported.
+        </p>
       </div>
     </div>
   )

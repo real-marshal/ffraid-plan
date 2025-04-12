@@ -4,7 +4,7 @@ import { CoreAction, Entity, EntityPropName, KfsByEntity } from '@/components/ca
 import { lerp, lerpRGB, round } from '@/utils'
 import Color from 'color'
 import { useSearchParams } from 'next/navigation'
-import { base64ToState } from '@/components/canvas/canvas-utils'
+import { base64ToState, makeEntity } from '@/components/canvas/canvas-utils'
 import { externalState } from '@/components/canvas/external-state'
 import { debug } from '@/components/canvas/canvas'
 
@@ -289,7 +289,7 @@ export function useSelections(
 
   const onTransformEnd = () => {
     transformerRef.current!.nodes().forEach((node) => {
-      if (node.getClassName() === 'Rect') {
+      if (node.getClassName() === 'Rect' || node.getClassName() === 'Image') {
         dispatch({
           type: 'set_entity_param',
           id: node.id(),
@@ -374,4 +374,56 @@ export function useSelections(
     stageOnMouseUp,
     onTransformEnd,
   }
+}
+
+export function useHotkeys({
+  selectedEntityIds,
+  setSelectedEntityIds,
+  dispatch,
+}: {
+  selectedEntityIds: string[]
+  setSelectedEntityIds: (ids: string[]) => void
+  dispatch: (action: CoreAction) => void
+}) {
+  useEffect(() => {
+    const keyEventHandler = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'm': {
+          const entity = makeEntity('melee')
+          dispatch({ type: 'add_entity', entity })
+          setSelectedEntityIds([entity.id])
+          break
+        }
+        case 'r': {
+          const entity = makeEntity('ranged')
+          dispatch({ type: 'add_entity', entity })
+          setSelectedEntityIds([entity.id])
+          break
+        }
+        case 'h': {
+          const entity = makeEntity('healer')
+          dispatch({ type: 'add_entity', entity })
+          setSelectedEntityIds([entity.id])
+          break
+        }
+        case 't': {
+          const entity = makeEntity('tank')
+          dispatch({ type: 'add_entity', entity })
+          setSelectedEntityIds([entity.id])
+          break
+        }
+        case 'Backspace': {
+          selectedEntityIds.forEach((entityId) => {
+            dispatch({ type: 'delete_entity', id: entityId })
+          })
+          setSelectedEntityIds([])
+          break
+        }
+      }
+    }
+
+    window.addEventListener('keydown', keyEventHandler, true)
+
+    return () => window.removeEventListener('keydown', keyEventHandler, true)
+  }, [dispatch, selectedEntityIds, setSelectedEntityIds])
 }

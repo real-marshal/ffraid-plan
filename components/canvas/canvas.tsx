@@ -11,7 +11,13 @@ import { VerticalMenu } from '@/components/vertical-menu'
 import { ContextMenu } from '@/components/context-menu'
 import { EntityList } from '@/components/entity-list'
 import { EntityPropEditor } from '@/components/entity-prop-editor'
-import { useKonvaContextMenu, useRerender, useSelections, useUrlStateRestore } from './canvas-hooks'
+import {
+  useHotkeys,
+  useKonvaContextMenu,
+  useRerender,
+  useSelections,
+  useUrlStateRestore,
+} from './canvas-hooks'
 import { kfsToWaapi, makeEntity, stateToBase64 } from './canvas-utils'
 import { coreReducer, Entity, initialState } from './canvas-state'
 import { Entities } from '@/components/entities'
@@ -58,6 +64,8 @@ export function Canvas() {
   useRerender({ keyframesByEntity, currentTime, dispatch })
 
   useUrlStateRestore(entities, dispatch)
+
+  useHotkeys({ selectedEntityIds, setSelectedEntityIds, dispatch })
 
   debug && console.log('canvas rerender')
   debug && console.log('new state')

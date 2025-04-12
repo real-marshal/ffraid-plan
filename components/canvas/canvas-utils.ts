@@ -14,12 +14,12 @@ export function makeEntity(type: Entity['type']): Entity {
         type: 'melee',
         props: {
           opacity: 1,
-          fill: 'red',
           x: width / 2,
           y: height / 2,
           width: 30,
           height: 30,
           rotation: 0,
+          image: './melee.png',
         },
       }
     case 'ranged':
@@ -28,12 +28,12 @@ export function makeEntity(type: Entity['type']): Entity {
         type: 'ranged',
         props: {
           opacity: 1,
-          fill: 'darkred',
           x: width / 2,
           y: height / 2,
           width: 30,
           height: 30,
           rotation: 0,
+          image: './ranged.png',
         },
       }
     case 'healer':
@@ -42,12 +42,12 @@ export function makeEntity(type: Entity['type']): Entity {
         type: 'healer',
         props: {
           opacity: 1,
-          fill: 'green',
           x: width / 2,
           y: height / 2,
           width: 30,
           height: 30,
           rotation: 0,
+          image: './healer.png',
         },
       }
     case 'tank':
@@ -56,12 +56,12 @@ export function makeEntity(type: Entity['type']): Entity {
         type: 'melee',
         props: {
           opacity: 1,
-          fill: 'blue',
           x: width / 2,
           y: height / 2,
           width: 30,
           height: 30,
           rotation: 0,
+          image: './tank.png',
         },
       }
     case 'rect':

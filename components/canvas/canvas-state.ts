@@ -23,6 +23,7 @@ export interface EntityProps {
   stroke?: string
   scaleX?: number
   scaleY?: number
+  image?: string
 }
 
 export type EntityPropName = keyof EntityProps
