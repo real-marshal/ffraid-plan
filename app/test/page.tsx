@@ -1,37 +1,82 @@
 'use client'
 
 import { CSSProperties, Ref, useEffect, useRef } from 'react'
+import { Arrow, arrowPathData, Triangle, trianglePathData } from '@/components/svg'
 
 const num = 10
 
 const waapiObj = [
   {
-    type: 'arrow',
+    type: 'ring',
     duration: 3000,
     keyframes: [
-      { scale: '1 1', rotate: '0deg', top: '2.33%', left: '8.67%' },
-      { left: '3.5%', offset: 0.33, top: '71.67%', scale: '3.45 1', rotate: '-90deg' },
-      { left: '50.5%', offset: 0.67, top: '6.5%', scale: '0.76 6.33', rotate: '90deg' },
-      { offset: 1, scale: '0.76 6.33', rotate: '90deg', top: '6.5%', left: '50.5%' },
+      { width: '50%', height: '50%', borderWidth: '25cqi', borderColor: '#ffffff' },
+      { width: '33.33%', height: '33.33%', borderWidth: '33.33cqi', offset: 0.33 },
+      { borderWidth: '16.67cqi', offset: 0.67, width: '33.33%', height: '33.33%' },
+      {
+        width: '66.67%',
+        height: '66.67%',
+        borderWidth: '33.33cqi',
+        offset: 1,
+        borderColor: '#a51d2d',
+      },
     ],
     initialValues: {
       opacity: 1,
       position: 'absolute',
       translate: '-50% -50%',
-      left: '8.67%',
-      top: '2.33%',
-      width: '18.33%',
+      left: '0%',
+      top: '0%',
+      width: '50%',
+      height: '50%',
+      rotate: '0deg',
+      borderWidth: '25cqi',
+      borderColor: '#ffffff',
+      borderRadius: '50%',
+      backgroundColor: 'transparent',
+      boxSizing: 'content-box',
+    },
+  },
+  {
+    type: 'triangle',
+    duration: 3000,
+    keyframes: [
+      { scale: '1 1' },
+      { scale: '1 4.46', offset: 0.33 },
+      { scale: '5.97 0.37', offset: 0.67 },
+      { scale: '4.52 2.17', offset: 1 },
+    ],
+    initialValues: {
+      opacity: 1,
+      position: 'absolute',
+      translate: '-50% -50%',
+      left: '50%',
+      top: '50%',
+      width: '13.33%',
       rotate: '0deg',
       scale: '1 1',
+    },
+  },
+  {
+    type: 'arrow',
+    duration: 3000,
+    keyframes: [],
+    initialValues: {
+      opacity: 1,
+      position: 'absolute',
+      translate: '-50% -50%',
+      left: '50%',
+      top: '50%',
+      width: '18.33%',
+      rotate: '0deg',
       fill: '#ffffff',
     },
   },
 ]
-
 export default function TestPage() {
-  const redDiv = useRef<HTMLDivElement | SVGSVGElement>(null)
+  const redDiv = useRef<HTMLDivElement>(null)
   const tanks = useRef<(HTMLImageElement | null)[]>([])
-  const waapiObjRefs = useRef<(HTMLDivElement | null)[]>([])
+  const waapiObjRefs = useRef<(HTMLDivElement | SVGSVGElement | null)[]>([])
 
   useEffect(() => {
     console.log('alter')
@@ -82,16 +127,15 @@ export default function TestPage() {
 
     waapiObj.forEach((entity, ind) => {
       console.log('playing next')
-      waapiObjRefs
-        .current![
-          ind
-        ]!.animate(entity.keyframes, { duration: entity.duration, iterations: Infinity })
-        .play()
+      waapiObjRefs.current![ind]!.animate(entity.keyframes, {
+        duration: entity.duration,
+        iterations: Infinity,
+      })
     })
   }, [])
 
   return (
-    <div className='relative w-[500px] h-[500px]'>
+    <div className='relative w-[500px] h-[500px] @container'>
       <img
         src='https://ffraid.tips/optimized-images/anf_hector.e43ba258-opt-640.WEBP'
         alt='alt'
@@ -113,25 +157,47 @@ export default function TestPage() {
           )
         })}
       <div ref={redDiv} className='bg-[red] w-[30px] h-[30px] absolute top-[30%] left-[20%]'></div>
-      {waapiObj.map((entity, ind) => (
-        <Arrow
-          key={ind}
-          // className='absolute'
-          className='top-50 left-50 -translate-x-1/2 -translate-y-1/2 absolute w-[110px] h-[40px] before:border-t-15 before:border-t-[var(--ff-arrow-color)] before:border-b-15 before:border-b-transparent before:border-l-15 before:border-l-transparent before:border-r-15 before:border-r-transparent before:inline-block before:absolute before:-rotate-90 before:left-[100px] before:top-[50%] before:-translate-y-1/2 before:scale-[1_2] after:top-[50%] after:-translate-y-1/2 after:h-[10px] after:w-[90px] after:bg-[var(--ff-arrow-color)] after:absolute after:inline-block'
-          style={entity.initialValues as CSSProperties}
-          ref={(ref) => {
-            waapiObjRefs.current[ind] = ref
-          }}
-        ></Arrow>
-      ))}
-      <div className='top-50 left-50 -translate-x-1/2 -translate-y-1/2 absolute w-[110px] h-[40px] before:border-t-15 before:border-t-[rgba(50,100,200,1)] before:border-b-15 before:border-b-transparent before:border-l-15 before:border-l-transparent before:border-r-15 before:border-r-transparent before:inline-block before:absolute before:-rotate-90 before:left-[100px] before:top-[50%] before:-translate-y-1/2 before:scale-[1_2] after:top-[50%] after:-translate-y-1/2 after:h-[10px] after:w-[90px] after:bg-[rgba(50,100,200,1)] after:absolute after:inline-block'></div>
+      {waapiObj.map((entity, ind) => {
+        switch (entity.type) {
+          case 'arrow':
+            return (
+              <Arrow
+                key={ind}
+                style={entity.initialValues as CSSProperties}
+                ref={(ref) => {
+                  waapiObjRefs.current[ind] = ref
+                }}
+              />
+            )
+          case 'triangle':
+            return (
+              <Triangle
+                key={ind}
+                style={entity.initialValues as CSSProperties}
+                ref={(ref) => {
+                  waapiObjRefs.current[ind] = ref
+                }}
+              />
+            )
+          default:
+            return (
+              <div
+                key={ind}
+                style={entity.initialValues as CSSProperties}
+                ref={(ref) => {
+                  waapiObjRefs.current[ind] = ref
+                }}
+              ></div>
+            )
+        }
+      })}
     </div>
   )
 }
 
 // http://localhost:3000/?s=G0cDIIyU7iLLBuf2nf5GpRLF2--YS9VMdM-E7qXTCxkt6K5OG98NUoBKA987kpRSLRMLhivgg3-InvSdm9fqKrpKVEd_6xxj-WqqmopVhp11KrolCWluW20VY7tQuVxo7IrlQrEyOBQafQT7SrVcyMQOX-DHqiletZBjuVBtYA3tc2qcYO9c4JSJtUKbKoseweqkmBBn21LRWRwuMtoKqqGdzBhA2ARtoqngorKkXuprfCyAqEBE9GPVeg0IKRfWDJImiBkd-XgEAbDJRMjUlrTmN7jPN1G10RIhguWJMTrxGMqWtJRk6HpEyWc1R_QI6t--SI1UEIBmBlsB3peFfCnvG-GYO3jyCkNNgEXopn-P8zBzhGLZkg81Y76LN7Na9whv7mO0Vr6IWA
 
-function Arrow({
+function Ring({
   style,
   ref,
 }: {
@@ -139,19 +205,11 @@ function Arrow({
   className?: string
   ref: Ref<SVGSVGElement>
 }) {
+  // w,h = (innerRadius * 2) / canvasW/H
+  // outline = (outerRadius - innerRadius) / canvasW/H
   return (
-    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 514 293' ref={ref} style={style}>
-      <path
-        d='M 26.00,125.12
-           C 26.00,125.12 350.25,125.38 350.25,125.38
-             350.25,125.38 350.00,68.88 350.00,68.88
-             350.00,68.88 506.82,146.82 506.82,146.82
-             506.82,146.82 350.18,225.36 350.18,225.36
-             350.18,225.36 350.12,168.62 350.12,168.62
-             350.12,168.62 26.18,168.18 26.18,168.18
-             26.18,168.18 26.00,125.12 26.00,125.12 Z'
-      />
-    </svg>
+    <div className='absolute w-[50%] h-[50%] bg-transparent -translate-1/2 rounded-full box-content border-[25cqi] border-[red]'></div>
+    // <div className='absolute w-[100%] h-[100%] bg-[red] -translate-1/2 rounded-full after:block after:bg-transparent after:w-[400px] after:h-[400px] after:absolute after:z-[100]'></div>
   )
 }
 

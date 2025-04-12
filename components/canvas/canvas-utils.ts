@@ -160,9 +160,30 @@ export interface WaapiEntity {
   keyframes: Keyframe[]
 }
 
-const konvaPropToWaapiProp: Partial<Record<EntityPropName, keyof CSSProperties>> = {
-  fill: 'backgroundColor',
+const konvaPropToWaapiPropMap: Partial<
+  Record<
+    EntityPropName,
+    keyof CSSProperties | Partial<Record<Entity['type'] | 'default', keyof CSSProperties>>
+  >
+> = {
+  fill: {
+    default: 'backgroundColor',
+    ring: 'borderColor',
+    triangle: 'fill',
+  },
   stroke: 'fill',
+}
+
+function konvaPropToWaapiProp(prop: EntityPropName, entityType: Entity['type']) {
+  const propName: keyof CSSProperties =
+    // @ts-expect-error it may exist, may not, that's why there's a ?. dumbass, no i won't write type guards
+    konvaPropToWaapiPropMap[prop]?.[entityType] ??
+    // @ts-expect-error it may exist, may not, that's why there's a ?. dumbass, no i won't write type guards
+    konvaPropToWaapiPropMap[prop]?.default ??
+    konvaPropToWaapiPropMap[prop] ??
+    prop
+
+  return propName
 }
 
 // uses top/left & width/height atm, not transforms
@@ -173,7 +194,7 @@ export function kfsToWaapi(
   passedKeyframes: Kf[],
   duration: number
 ): WaapiEntity[] {
-  if (!entities.length || !passedKeyframes.length) {
+  if (!entities.length) {
     return []
   }
 
@@ -230,10 +251,38 @@ export function kfsToWaapi(
             waapiPropValue['scale'] = `${prevScaleXKf?.value ?? 1} ${kf.value}`
             break
           }
-          default: {
-            const propName = konvaPropToWaapiProp[kf.prop] ?? (kf.prop as keyof CSSProperties)
+          // w,h = (innerRadius * 2) / canvasW/H
+          // border = (outerRadius - innerRadius) / canvasW/H
+          case 'innerRadius': {
+            const prevOuterRadius =
+              (keyframes.findLast(
+                (prevKf) =>
+                  prevKf.entityId === e.id &&
+                  prevKf.prop === 'outerRadius' &&
+                  prevKf.time <= kf.time
+              )?.value as number | undefined) ?? e.props.outerRadius!
 
-            waapiPropValue[propName] = kf.value
+            waapiPropValue['width'] = round((((kf.value as number) * 2) / width) * 100) + '%'
+            waapiPropValue['height'] = round((((kf.value as number) * 2) / height) * 100) + '%'
+            waapiPropValue['borderWidth'] =
+              round(((prevOuterRadius - (kf.value as number)) / width) * 100) + 'cqi'
+            break
+          }
+          case 'outerRadius': {
+            const prevInnerRadius =
+              (keyframes.findLast(
+                (prevKf) =>
+                  prevKf.entityId === e.id &&
+                  prevKf.prop === 'innerRadius' &&
+                  prevKf.time <= kf.time
+              )?.value as number | undefined) ?? e.props.innerRadius!
+
+            waapiPropValue['borderWidth'] =
+              round((((kf.value as number) - prevInnerRadius) / width) * 100) + 'cqi'
+            break
+          }
+          default: {
+            waapiPropValue[konvaPropToWaapiProp(kf.prop, e.type)] = kf.value
           }
         }
 
@@ -286,7 +335,11 @@ export function kfsToWaapi(
             ? e.props.radius! * 2
             : e.type === 'arrow'
               ? 110
-              : NaN) /
+              : e.type === 'ring'
+                ? e.props.innerRadius! * 2
+                : e.type === 'triangle'
+                  ? 80
+                  : NaN) /
             width) *
             100
         ) + '%',
@@ -296,11 +349,17 @@ export function kfsToWaapi(
             ? e.props.radius! * 2
             : e.type === 'arrow'
               ? 40
-              : NaN) /
+              : e.type === 'ring'
+                ? e.props.innerRadius! * 2
+                : NaN) /
             height) *
             100
         ) + '%',
       rotate: e.props.rotation + 'deg',
+      borderWidth:
+        e.type === 'ring'
+          ? ((e.props.outerRadius! - e.props.innerRadius!) / width) * 100 + 'cqi'
+          : undefined,
       ...(waapiKeyframes?.[0] as Omit<CSSProperties, 'offset'>),
     }
 
@@ -308,7 +367,21 @@ export function kfsToWaapi(
       initialValues.borderRadius = '50%'
     }
 
+    // svg breaks with both dimensions specified
     if (e.type === 'arrow') {
+      delete initialValues.height
+    }
+
+    if (e.type === 'ring') {
+      initialValues.borderRadius = '50%'
+      initialValues.backgroundColor = 'transparent'
+      initialValues.boxSizing = 'content-box'
+    } else {
+      delete initialValues.borderWidth
+    }
+
+    if (e.type === 'triangle') {
+      delete initialValues.data
       delete initialValues.height
     }
 
@@ -318,10 +391,12 @@ export function kfsToWaapi(
     delete initialValues.rotation
     delete initialValues.scaleX
     delete initialValues.scaleY
+    delete initialValues.innerRadius
+    delete initialValues.outerRadius
 
-    for (const konvaProp in konvaPropToWaapiProp) {
-      // @ts-expect-error crazy bitch
-      initialValues[konvaPropToWaapiProp[konvaProp as EntityPropName]!] = (
+    for (const konvaProp in konvaPropToWaapiPropMap) {
+      // @ts-expect-error crazy bitch..
+      initialValues[konvaPropToWaapiProp(konvaProp, e.type)] = (
         initialValues as Partial<EntityProps>
       )[konvaProp as EntityPropName]
       delete (initialValues as Partial<EntityProps>)[konvaProp as EntityPropName]
