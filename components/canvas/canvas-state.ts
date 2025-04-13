@@ -6,7 +6,17 @@ enableMapSet()
 
 export interface Entity {
   id: string
-  type: 'melee' | 'ranged' | 'healer' | 'tank' | 'rect' | 'circle' | 'arrow' | 'triangle' | 'ring'
+  type:
+    | 'melee'
+    | 'ranged'
+    | 'healer'
+    | 'tank'
+    | 'rect'
+    | 'circle'
+    | 'arrow'
+    | 'triangle'
+    | 'ring'
+    | 'text'
   selectable: boolean
   props: EntityProps
 }
@@ -27,6 +37,10 @@ export interface EntityProps {
   data?: string
   innerRadius?: number
   outerRadius?: number
+  text?: string
+  fontSize?: number
+  stroke?: string
+  strokeWidth?: number
 }
 
 export type EntityPropName = keyof EntityProps

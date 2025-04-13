@@ -1,8 +1,10 @@
 import { Entity, EntityPropName, Kf } from '@/components/canvas/canvas-state'
 import { NumberInput } from '@/components/number-input'
-import { height, width } from '@/components/canvas/external-state'
+import { externalState, height, width } from '@/components/canvas/external-state'
+import { ColorInput } from '@/components/color-input'
+import { useState } from 'react'
 
-export type PropType = 'color' | 'number'
+export type PropType = 'color' | 'number' | 'string'
 
 export interface PropDescription {
   name: EntityPropName
@@ -34,6 +36,8 @@ export const entityTypeToProps: Record<Entity['type'], PropDescription[]> = {
     { name: 'width', type: 'number', min: 0, max: width },
     { name: 'height', type: 'number', min: 0, max: height },
     { name: 'fill', type: 'color' },
+    { name: 'stroke', type: 'color' },
+    { name: 'strokeWidth', type: 'number' },
   ],
   circle: [...baseProps, { name: 'radius', type: 'number' }, { name: 'fill', type: 'color' }],
   arrow: [
@@ -53,6 +57,14 @@ export const entityTypeToProps: Record<Entity['type'], PropDescription[]> = {
     { name: 'fill', type: 'color' },
     { name: 'innerRadius', type: 'number', min: 10, max: width / 2 },
     { name: 'outerRadius', type: 'number', min: 15, max: width },
+  ],
+  text: [
+    ...baseProps,
+    { name: 'fill', type: 'color' },
+    { name: 'text', type: 'string' },
+    { name: 'fontSize', type: 'number', min: 10, max: 300 },
+    { name: 'scaleX', type: 'number', min: 0, max: 100 },
+    { name: 'scaleY', type: 'number', min: 0, max: 100 },
   ],
 }
 
@@ -98,29 +110,17 @@ export function EntityPropEditor({
                 )
 
           return (
-            <label
+            <Input
               key={name}
-              className='input cursor-pointer flex flex-row justify-between items-center w-[230px]'
-            >
-              <span className='label'>{name}</span>
-              <Input
-                type={type}
-                propName={name}
-                onPropChange={onPropChange}
-                value={value}
-                min={min}
-                max={max}
-              />
-              <button
-                className='btn btn-xs p-1 m-0'
-                onClick={() => onKf(name)}
-                style={{
-                  backgroundColor: isKfed ? 'var(--color-red-900)' : undefined,
-                }}
-              >
-                KF
-              </button>
-            </label>
+              type={type}
+              propName={name}
+              onPropChange={onPropChange}
+              value={value}
+              min={min}
+              max={max}
+              isKfed={!!isKfed}
+              onKf={onKf}
+            />
           )
         })}
     </div>
@@ -134,8 +134,62 @@ function Input({
   value,
   min,
   max,
+  isKfed,
+  onKf,
 }: {
-  type: 'color' | 'number'
+  type: PropType
+  propName: EntityPropName
+  onPropChange: (propName: EntityPropName, value: number | string) => void
+  value: number | string | undefined
+  min?: number
+  max?: number
+  isKfed: boolean
+  onKf: (propName: EntityPropName) => void
+}) {
+  const [zIndex, setZIndex] = useState(0)
+
+  const isKfable = type !== 'string'
+
+  return (
+    <span
+      className='input cursor-default flex flex-row justify-between items-center w-[230px]'
+      style={{ zIndex }}
+      onFocus={() => setZIndex(999)}
+      onBlur={() => setZIndex(0)}
+    >
+      <span className='label'>{propName}</span>
+      <InputElement
+        type={type}
+        propName={propName}
+        onPropChange={onPropChange}
+        value={value}
+        min={min}
+        max={max}
+      />
+      {isKfable && (
+        <button
+          className='btn btn-xs p-1 m-0'
+          onClick={() => onKf(propName)}
+          style={{
+            backgroundColor: isKfed ? 'var(--color-red-900)' : undefined,
+          }}
+        >
+          KF
+        </button>
+      )}
+    </span>
+  )
+}
+
+function InputElement({
+  type,
+  propName,
+  onPropChange,
+  value,
+  min,
+  max,
+}: {
+  type: PropType
   propName: EntityPropName
   onPropChange: (propName: EntityPropName, value: number | string) => void
   value: number | string | undefined
@@ -145,11 +199,9 @@ function Input({
   switch (type) {
     case 'color':
       return (
-        <input
-          type='color'
-          className='w-[40px] h-[40px] cursor-pointer p-2 '
-          value={value}
-          onChange={(e) => onPropChange(propName, e.target.value)}
+        <ColorInput
+          value={value as string | undefined}
+          onChange={(value) => onPropChange(propName, value)}
         />
       )
     case 'number':
@@ -160,6 +212,17 @@ function Input({
           step={0.1}
           min={min ?? 0}
           max={max ?? 1000}
+        />
+      )
+    case 'string':
+      return (
+        <input
+          type='text'
+          className=''
+          onFocus={() => (externalState.isInputting = true)}
+          onBlur={() => (externalState.isInputting = false)}
+          value={value}
+          onChange={(e) => onPropChange(propName, e.target.value)}
         />
       )
     default:

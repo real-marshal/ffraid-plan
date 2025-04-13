@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/alt-text */
-import { Circle, Rect, Image, Path, Ring } from 'react-konva'
+import { Circle, Rect, Image, Path, Ring, Text } from 'react-konva'
 import { CoreAction, Entity, EntityProps } from '@/components/canvas/canvas-state'
 import Konva from 'konva'
 import { externalState, svgEntityDimensions } from '@/components/canvas/external-state'
@@ -107,6 +107,9 @@ export function Entities({
         return (
           <Ring key={entity.id} {...(entity.props as Required<EntityProps>)} {...commonProps} />
         )
+      }
+      case 'text': {
+        return <Text key={entity.id} {...entity.props} {...commonProps} li />
       }
       default:
         alert('Unknown entity type')

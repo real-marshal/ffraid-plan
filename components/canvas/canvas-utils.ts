@@ -1,7 +1,7 @@
 import { CoreState, Entity, EntityPropName, EntityProps, Kf } from './canvas-state'
 import { height, svgEntityDimensions, width } from '@/components/canvas/external-state'
 import { nanoid } from 'nanoid'
-import { compressBrotli, round, uncompressBrotli } from '@/utils'
+import { compressBrotli, isObjEmpty, round, uncompressBrotli } from '@/utils'
 import { toByteArray, fromByteArray } from 'base64-js'
 import { encode, decode } from '@msgpack/msgpack'
 import { CSSProperties } from 'react'
@@ -82,6 +82,8 @@ export function makeEntity(type: Entity['type']): Entity {
           width: 30,
           height: 30,
           rotation: 0,
+          stroke: 'black',
+          strokeWidth: 0,
         },
       }
     case 'circle':
@@ -145,18 +147,36 @@ export function makeEntity(type: Entity['type']): Entity {
           outerRadius: 40,
         },
       }
+    case 'text':
+      return {
+        id: nanoid(4),
+        type: 'text',
+        selectable: true,
+        props: {
+          opacity: 1,
+          fill: '#ffffff',
+          x: width / 2,
+          y: height / 2,
+          rotation: 0,
+          text: 'text',
+          fontSize: 40,
+          scaleX: 1,
+          scaleY: 1,
+        },
+      }
     default:
       throw new Error(`Unknown type ${type}`)
   }
 }
 
-// type WaapiKf = {
-//   offset: number
-// } & CSSProperties
+interface SpecialValues {
+  text?: string
+}
 
 export interface WaapiEntity {
   type: Entity['type']
   duration: number
+  specialValues?: SpecialValues
   initialValues: CSSProperties
   keyframes: Keyframe[]
 }
@@ -172,7 +192,9 @@ const konvaPropToWaapiPropMap: Partial<
     ring: 'borderColor',
     triangle: 'fill',
     arrow: 'fill',
+    text: 'color',
   },
+  stroke: 'outlineColor',
 }
 
 function konvaPropToWaapiProp(prop: EntityPropName, entityType: Entity['type']) {
@@ -282,6 +304,16 @@ export function kfsToWaapi(
               round((((kf.value as number) - prevInnerRadius) / width) * 100) + 'cqi'
             break
           }
+          case 'fontSize': {
+            waapiPropValue['fontSize'] = round(((kf.value as number) / width) * 100) + 'cqi'
+            break
+          }
+          case 'strokeWidth': {
+            waapiPropValue['outlineWidth'] = round(((kf.value as number) / width) * 100) + 'cqi'
+            waapiPropValue['outlineOffset'] =
+              -round(((kf.value as number) / 2 / width) * 100) + 'cqi'
+            break
+          }
           default: {
             waapiPropValue[konvaPropToWaapiProp(kf.prop, e.type)] = kf.value
           }
@@ -321,7 +353,10 @@ export function kfsToWaapi(
 
     waapiKeyframes?.[0] && delete waapiKeyframes[0].offset
 
-    const initialValues: Omit<Partial<EntityProps>, 'width' | 'height' | 'opacity'> &
+    const initialValues: Omit<
+      Partial<EntityProps>,
+      'width' | 'height' | 'opacity' | 'fontSize' | 'strokeWidth'
+    > &
       CSSProperties = {
       ...e.props,
       position: 'absolute',
@@ -332,35 +367,52 @@ export function kfsToWaapi(
       top: round((e.props.y / height) * 100) + '%',
       width:
         round(
-          (((e.props.width ?? e.type === 'circle')
-            ? e.props.radius! * 2
-            : e.type === 'ring'
-              ? e.props.innerRadius! * 2
-              : (svgEntityDimensions[e.type]?.width ?? NaN)) /
+          ((e.props.width ??
+            (e.type === 'circle'
+              ? e.props.radius! * 2
+              : e.type === 'ring'
+                ? e.props.innerRadius! * 2
+                : (svgEntityDimensions[e.type]?.width ?? NaN))) /
             width) *
             100
         ) + '%',
       height:
         round(
-          (((e.props.height ?? e.type === 'circle')
-            ? e.props.radius! * 2
-            : e.type === 'ring'
-              ? e.props.innerRadius! * 2
-              : NaN) /
+          ((e.props.height ??
+            (e.type === 'circle'
+              ? e.props.radius! * 2
+              : e.type === 'ring'
+                ? e.props.innerRadius! * 2
+                : NaN)) /
             height) *
             100
         ) + '%',
       rotate: e.props.rotation + 'deg',
-      borderWidth:
-        e.type === 'ring'
-          ? ((e.props.outerRadius! - e.props.innerRadius!) / width) * 100 + 'cqi'
-          : undefined,
+      ...(e.type === 'rect' && e.props.strokeWidth
+        ? {
+            outlineWidth: round((e.props.strokeWidth / width) * 100) + 'cqi',
+            outlineOffset: -round((e.props.strokeWidth / 2 / width) * 100) + 'cqi',
+            outlineStyle: 'solid',
+          }
+        : {}),
+      ...(e.type === 'circle' ? { borderRadius: '50%' } : {}),
+      ...(e.type === 'ring'
+        ? {
+            borderRadius: '50%',
+            backgroundColor: 'transparent',
+            boxSizing: 'content-box',
+            borderWidth:
+              round(((e.props.outerRadius! - e.props.innerRadius!) / width) * 100) + 'cqi',
+          }
+        : {}),
+      ...(e.type === 'text'
+        ? { fontSize: round(((e.props.fontSize as number) / width) * 100) + 'cqi' }
+        : {}),
       ...(waapiKeyframes?.[0] as Omit<CSSProperties, 'offset'>),
     }
 
-    if (e.type === 'circle') {
-      initialValues.borderRadius = '50%'
-    }
+    const specialValues: SpecialValues = {}
+
     // svg breaks with both dimensions specified
     if (e.type === 'arrow' || e.type === 'triangle') {
       delete initialValues.data
@@ -369,12 +421,17 @@ export function kfsToWaapi(
       initialValues.scale = `${initialValues.scaleX} ${initialValues.scaleY}`
     }
 
-    if (e.type === 'ring') {
-      initialValues.borderRadius = '50%'
-      initialValues.backgroundColor = 'transparent'
-      initialValues.boxSizing = 'content-box'
-    } else {
-      delete initialValues.borderWidth
+    if (e.type === 'text') {
+      specialValues.text = e.props.text
+      initialValues.scale = `${initialValues.scaleX} ${initialValues.scaleY}`
+      initialValues.transformOrigin = 'top left'
+      // todo: write somewhere that this depends on your font and you might need to change it
+      initialValues.lineHeight = 0.77
+
+      delete initialValues.translate
+      delete initialValues.width
+      delete initialValues.height
+      delete initialValues.text
     }
 
     delete initialValues.x
@@ -385,6 +442,7 @@ export function kfsToWaapi(
     delete initialValues.scaleY
     delete initialValues.innerRadius
     delete initialValues.outerRadius
+    delete initialValues.strokeWidth
 
     for (const konvaProp in konvaPropToWaapiPropMap) {
       const cssProp = konvaPropToWaapiProp(konvaProp as EntityPropName, e.type)
@@ -399,6 +457,7 @@ export function kfsToWaapi(
       duration: duration * 1000,
       keyframes: waapiKeyframes,
       initialValues,
+      ...(isObjEmpty(specialValues) ? {} : { specialValues }),
     }
   })
 }

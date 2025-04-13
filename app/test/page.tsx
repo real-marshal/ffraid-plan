@@ -3,78 +3,62 @@
 import { CSSProperties, useEffect, useRef } from 'react'
 import { Arrow, Triangle } from '@/components/svg'
 
-const num = 10
-
 const waapiObj = [
   {
-    type: 'triangle',
+    type: 'rect',
     duration: 3000,
     keyframes: [],
     initialValues: {
-      opacity: 0.6,
-      fill: '#c64600',
+      opacity: 1,
+      width: '5%',
+      height: '5%',
       position: 'absolute',
       translate: '-50% -50%',
-      left: '41.33%',
-      top: '54.17%',
-      width: '13.33%',
-      rotate: '90deg',
-      scale: '2.35 3.15',
+      left: '26.5%',
+      top: '35.5%',
+      rotate: '0deg',
+      backgroundColor: '#3fb45d66',
+      outlineColor: '#ca6d6d',
+    },
+  },
+  {
+    type: 'rect',
+    duration: 3000,
+    keyframes: [
+      { width: '19.24%', height: '19.73%' },
+      { width: '54.69%', offset: 0.33, height: '19.73%', outlineColor: '#000000' },
+      { outlineColor: '#de2424', offset: 0.5 },
+      { outlineWidth: '5cqi', outlineOffset: '-2.5cqi', offset: 0.67 },
+      {
+        outlineWidth: '1.67cqi',
+        outlineOffset: '-0.83cqi',
+        offset: 1,
+        width: '54.69%',
+        height: '19.73%',
+        outlineColor: '#de2424',
+      },
+    ],
+    initialValues: {
+      opacity: 1,
+      width: '19.24%',
+      height: '19.73%',
+      position: 'absolute',
+      translate: '-50% -50%',
+      left: '28.67%',
+      top: '33%',
+      rotate: '0deg',
+      outlineWidth: '5cqi',
+      outlineOffset: '-2.5cqi',
+      outlineStyle: 'solid',
+      backgroundColor: '#ffffff00',
+      outlineColor: '#000000',
     },
   },
 ]
 export default function TestPage() {
-  const redDiv = useRef<HTMLDivElement>(null)
-  const tanks = useRef<(HTMLImageElement | null)[]>([])
-  const waapiObjRefs = useRef<(HTMLDivElement | SVGSVGElement | null)[]>([])
+  const waapiObjRefs = useRef<(HTMLElement | SVGElement | null)[]>([])
 
   useEffect(() => {
-    console.log('alter')
-
-    tanks.current.forEach((tank) => {
-      tank!.animate(
-        [
-          {
-            // top: `${Math.round(Math.random() * 500)}px`,
-            // left: `${Math.round(Math.random() * 500)}px`,
-            transform: `translate(${Math.round(Math.random() * 500)}px, ${Math.round(Math.random() * 500)}px)`,
-            // translate: `${Math.round(Math.random() * 500)}px, ${Math.round(Math.random() * 500)}px`,
-            scale: Math.round(Math.random()),
-            opacity: Math.round(Math.random()),
-          },
-          {
-            // top: `${Math.round(Math.random() * 50)}%`,
-            // left: `${Math.round(Math.random() * 50)}%`,
-            transform: `translate(${Math.round(Math.random() * 500)}px, ${Math.round(Math.random() * 500)}px)`,
-            // translate: `${Math.round(Math.random() * 500)}px, ${Math.round(Math.random() * 500)}px`,
-            scale: Math.round(Math.random()),
-            opacity: Math.round(Math.random()),
-          },
-        ],
-        { duration: 3000, iterations: Infinity }
-      )
-    })
-
-    redDiv
-      .current!.animate(
-        [
-          {
-            // scale: 1,
-            transform: 'scale(1)',
-          },
-          {
-            // scale: 2,
-            transform: 'scale(2)',
-          },
-          {
-            // scale: 2,
-            transform: 'scale(1)',
-          },
-        ],
-        { duration: 3000, iterations: Infinity }
-      )
-      .play()
-
     waapiObj.forEach((entity, ind) => {
       console.log('playing next')
       waapiObjRefs.current![ind]!.animate(entity.keyframes, {
@@ -91,22 +75,6 @@ export default function TestPage() {
         alt='alt'
         className='absolute'
       />
-      {Array(num)
-        .fill(0)
-        .map((_, ind) => {
-          return (
-            <img
-              key={ind}
-              ref={(ref) => {
-                tanks.current[ind] = ref
-              }}
-              src='https://ffraid.tips/optimized-images/tank.58f152c2-opt-256.WEBP'
-              alt='tank'
-              className='absolute'
-            />
-          )
-        })}
-      <div ref={redDiv} className='bg-[red] w-[30px] h-[30px] absolute top-[30%] left-[20%]'></div>
       {waapiObj.map((entity, ind) => {
         switch (entity.type) {
           case 'arrow':
@@ -128,6 +96,18 @@ export default function TestPage() {
                   waapiObjRefs.current[ind] = ref
                 }}
               />
+            )
+          case 'text':
+            return (
+              <span
+                key={ind}
+                style={entity.initialValues as CSSProperties}
+                ref={(ref) => {
+                  waapiObjRefs.current[ind] = ref
+                }}
+              >
+                {entity.specialValues.text}
+              </span>
             )
           default:
             return (
