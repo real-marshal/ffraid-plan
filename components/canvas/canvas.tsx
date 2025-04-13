@@ -260,13 +260,14 @@ export function Canvas() {
       />
       <EntityList
         entities={entities}
-        className='col-start-3 row-span-3 ml-10 w-[250px]'
+        className='col-start-3 row-span-3 ml-10 w-[350px]'
         selectedEntityIds={selectedEntityIds}
         onEntitySelect={(id) => setSelectedEntityIds([id])}
         keyframesByEntity={keyframesByEntity}
         onEntitySelectableToggle={(entityId) =>
           dispatch({ type: 'toggle_selectable', id: entityId })
         }
+        onEntityMove={(ind, newInd) => dispatch({ type: 'move_entity', ind, newInd })}
       />
     </div>
   )

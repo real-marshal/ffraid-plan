@@ -66,7 +66,7 @@ export function KfMarker({
 
   return (
     <span
-      className='absolute text-sm font-bold -translate-x-1/2 text-center select-none'
+      className='absolute text-sm font-bold -translate-x-1/2 text-center select-none cursor-grab'
       style={{
         left: draggingMouseX
           ? clamp(draggingMouseX, 0, width)

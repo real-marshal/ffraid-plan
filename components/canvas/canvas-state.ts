@@ -82,6 +82,7 @@ export type CoreAction =
   | { type: 'add_entity'; entity: Entity }
   | { type: 'delete_entity'; id: string }
   | { type: 'toggle_selectable'; id: string }
+  | { type: 'move_entity'; ind: number; newInd: number }
   | {
       type: 'set_entity_param'
       id: string
@@ -138,6 +139,15 @@ export function coreReducer(state: CoreState, action: CoreAction): CoreState {
         if (!entity) throw new Error('No entity with id ' + action.id)
 
         entity.selectable = !entity.selectable
+      })
+    }
+    case 'move_entity': {
+      return produce(state, (draft) => {
+        const entity = draft.entities[action.ind]
+
+        draft.entities.splice(action.ind, 1)
+
+        draft.entities.splice(action.newInd, 0, entity)
       })
     }
     case 'set_entity_param': {

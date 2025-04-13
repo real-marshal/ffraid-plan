@@ -463,13 +463,10 @@ export function kfsToWaapi(
     if (e.type === 'arrow' || e.type === 'triangle') {
       delete initialValues.data
       delete initialValues.height
-
-      initialValues.scale = `${initialValues.scaleX} ${initialValues.scaleY}`
     }
 
     if (e.type === 'text') {
       specialValues.text = e.props.text
-      initialValues.scale = `${initialValues.scaleX} ${initialValues.scaleY}`
       initialValues.transformOrigin = 'top left'
       // todo: write somewhere that this depends on your font and you might need to change it
       initialValues.lineHeight = 0.77
