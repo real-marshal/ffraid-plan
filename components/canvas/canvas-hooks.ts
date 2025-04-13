@@ -351,7 +351,11 @@ export function useSelections(
         node.scaleY(1)
       }
 
-      if (node.getClassName() === 'Path' || node.getClassName() === 'Text') {
+      if (
+        node.getClassName() === 'Path' ||
+        node.getClassName() === 'Text' ||
+        node.getClassName() === 'Group'
+      ) {
         dispatch({
           type: 'set_entity_param',
           id: node.id(),

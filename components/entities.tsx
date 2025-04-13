@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/alt-text */
-import { Circle, Rect, Image, Path, Ring, Text } from 'react-konva'
+import { Circle, Rect, Image, Path, Ring, Text, Group } from 'react-konva'
 import { CoreAction, Entity, EntityProps } from '@/components/canvas/canvas-state'
 import Konva from 'konva'
 import { externalState, svgEntityDimensions } from '@/components/canvas/external-state'
@@ -110,6 +110,42 @@ export function Entities({
       }
       case 'text': {
         return <Text key={entity.id} {...entity.props} {...commonProps} li />
+      }
+      case 'checkerboard': {
+        const { gridSize, cellSize, cellColor1, cellColor2, ...entityProps } = entity.props
+
+        return (
+          <Group
+            key={entity.id}
+            {...entityProps}
+            {...commonProps}
+            offsetX={(gridSize! * cellSize!) / 2}
+            offsetY={(gridSize! * cellSize!) / 2}
+          >
+            {Array(gridSize)
+              .fill(0)
+              .map((_, xInd) => {
+                return Array(gridSize)
+                  .fill(0)
+                  .map((_, yInd) => {
+                    return (
+                      <Rect
+                        key={xInd + yInd}
+                        x={xInd * cellSize!}
+                        y={yInd * cellSize!}
+                        width={cellSize}
+                        height={cellSize}
+                        fill={
+                          (xInd % 2 === 0 && yInd % 2 === 1) || (xInd % 2 === 1 && yInd % 2 === 0)
+                            ? cellColor2
+                            : cellColor1
+                        }
+                      />
+                    )
+                  })
+              })}
+          </Group>
+        )
       }
       default:
         alert('Unknown entity type')

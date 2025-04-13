@@ -1,14 +1,17 @@
-import { Entity } from '@/components/canvas/canvas-state'
+import { EntityType } from '@/components/canvas/canvas-state'
 
 export function VerticalMenu({
   className,
   onEntityAdd,
 }: {
   className?: string
-  onEntityAdd: (type: Entity['type']) => void
+  onEntityAdd: (type: EntityType) => void
 }) {
   return (
     <ul className={`flex flex-col rounded-box ${className} items-end gap-1`}>
+      <button className='btn btn-sm w-[40px]' onClick={() => onEntityAdd('checkerboard')}>
+        chkb
+      </button>
       <button className='btn btn-sm w-[40px]' onClick={() => onEntityAdd('text')}>
         text
       </button>

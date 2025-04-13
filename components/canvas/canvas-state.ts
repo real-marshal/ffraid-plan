@@ -6,20 +6,23 @@ enableMapSet()
 
 export interface Entity {
   id: string
-  type:
-    | 'melee'
-    | 'ranged'
-    | 'healer'
-    | 'tank'
-    | 'rect'
-    | 'circle'
-    | 'arrow'
-    | 'triangle'
-    | 'ring'
-    | 'text'
+  type: EntityType
   selectable: boolean
   props: EntityProps
 }
+
+export type EntityType =
+  | 'melee'
+  | 'ranged'
+  | 'healer'
+  | 'tank'
+  | 'rect'
+  | 'circle'
+  | 'arrow'
+  | 'triangle'
+  | 'ring'
+  | 'text'
+  | 'checkerboard'
 
 export interface EntityProps {
   opacity: number
@@ -41,6 +44,11 @@ export interface EntityProps {
   fontSize?: number
   stroke?: string
   strokeWidth?: number
+  gridSize?: number
+  cellSize?: number
+  cellColor1?: string
+  cellColor2?: string
+  // invert?: boolean
 }
 
 export type EntityPropName = keyof EntityProps

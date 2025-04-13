@@ -20,7 +20,7 @@ import {
   useUrlStateRestore,
 } from './canvas-hooks'
 import { kfsToWaapi, makeEntity, stateToBase64 } from './canvas-utils'
-import { coreReducer, Entity, initialState } from './canvas-state'
+import { coreReducer, EntityPropName, EntityType, initialState } from './canvas-state'
 import { Entities } from '@/components/entities'
 import Konva from 'konva'
 import { KfTimeline } from '@/components/kf-timeline'
@@ -133,7 +133,7 @@ export function Canvas() {
       />
       <VerticalMenu
         className='col-start-1 row-start-2 self-end justify-self-end mr-1'
-        onEntityAdd={(type: Entity['type']) => {
+        onEntityAdd={(type: EntityType) => {
           const entity = makeEntity(type)
           dispatch({ type: 'add_entity', entity })
           setSelectedEntityIds([entity.id])

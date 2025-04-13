@@ -1,4 +1,4 @@
-import { Entity, EntityPropName, Kf } from '@/components/canvas/canvas-state'
+import { Entity, EntityPropName, EntityType, Kf } from '@/components/canvas/canvas-state'
 import { NumberInput } from '@/components/number-input'
 import { externalState, height, width } from '@/components/canvas/external-state'
 import { ColorInput } from '@/components/color-input'
@@ -11,6 +11,7 @@ export interface PropDescription {
   type: PropType
   min?: number
   max?: number
+  nonkfable?: boolean
 }
 
 const baseProps: PropDescription[] = [
@@ -26,7 +27,7 @@ const roleProps: PropDescription[] = [
   { name: 'height', type: 'number', min: 0, max: height },
 ]
 
-export const entityTypeToProps: Record<Entity['type'], PropDescription[]> = {
+export const entityTypeToProps: Record<EntityType, PropDescription[]> = {
   melee: roleProps,
   ranged: roleProps,
   healer: roleProps,
@@ -66,6 +67,15 @@ export const entityTypeToProps: Record<Entity['type'], PropDescription[]> = {
     { name: 'scaleX', type: 'number', min: 0, max: 100 },
     { name: 'scaleY', type: 'number', min: 0, max: 100 },
   ],
+  checkerboard: [
+    ...baseProps,
+    { name: 'scaleX', type: 'number', min: 0, max: 100 },
+    { name: 'scaleY', type: 'number', min: 0, max: 100 },
+    { name: 'gridSize', type: 'number', min: 0, max: 1000, nonkfable: true },
+    { name: 'cellSize', type: 'number', min: 0, max: 1000 },
+    { name: 'cellColor1', type: 'color' },
+    { name: 'cellColor2', type: 'color' },
+  ],
 }
 
 export function EntityPropEditor({
@@ -89,7 +99,7 @@ export function EntityPropEditor({
   return (
     <div className={`flex flex-col gap-2 mr-10 ${className}`}>
       {entities.length > 0 &&
-        props.map(({ name, type, min, max }) => {
+        props.map(({ name, type, min, max, nonkfable }) => {
           const oneValue = entities[0].props[name]
           const value =
             entities.length === 1
@@ -120,6 +130,7 @@ export function EntityPropEditor({
               max={max}
               isKfed={!!isKfed}
               onKf={onKf}
+              nonkfable={nonkfable}
             />
           )
         })}
@@ -136,6 +147,7 @@ function Input({
   max,
   isKfed,
   onKf,
+  nonkfable,
 }: {
   type: PropType
   propName: EntityPropName
@@ -145,10 +157,11 @@ function Input({
   max?: number
   isKfed: boolean
   onKf: (propName: EntityPropName) => void
+  nonkfable?: boolean
 }) {
   const [zIndex, setZIndex] = useState(0)
 
-  const isKfable = type !== 'string'
+  const isKfable = type !== 'string' && !nonkfable
 
   return (
     <span
@@ -172,6 +185,7 @@ function Input({
           onClick={() => onKf(propName)}
           style={{
             backgroundColor: isKfed ? 'var(--color-red-900)' : undefined,
+            color: isKfed ? 'white' : undefined,
           }}
         >
           KF

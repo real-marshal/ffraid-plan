@@ -1,4 +1,4 @@
-import { CoreState, Entity, EntityPropName, EntityProps, Kf } from './canvas-state'
+import { CoreState, Entity, EntityPropName, EntityProps, EntityType, Kf } from './canvas-state'
 import { height, svgEntityDimensions, width } from '@/components/canvas/external-state'
 import { nanoid } from 'nanoid'
 import { compressBrotli, isObjEmpty, round, uncompressBrotli } from '@/utils'
@@ -7,7 +7,7 @@ import { encode, decode } from '@msgpack/msgpack'
 import { CSSProperties } from 'react'
 import { arrowPathData, trianglePathData } from '@/components/svg'
 
-export function makeEntity(type: Entity['type']): Entity {
+export function makeEntity(type: EntityType): Entity {
   switch (type) {
     case 'melee':
       return {
@@ -164,6 +164,24 @@ export function makeEntity(type: Entity['type']): Entity {
           scaleY: 1,
         },
       }
+    case 'checkerboard':
+      return {
+        id: nanoid(4),
+        type: 'checkerboard',
+        selectable: true,
+        props: {
+          opacity: 1,
+          x: width / 2,
+          y: height / 2,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          gridSize: 3,
+          cellSize: 30,
+          cellColor1: '#ffffff',
+          cellColor2: '#ffffff00',
+        },
+      }
     default:
       throw new Error(`Unknown type ${type}`)
   }
@@ -174,7 +192,7 @@ interface SpecialValues {
 }
 
 export interface WaapiEntity {
-  type: Entity['type']
+  type: EntityType
   duration: number
   specialValues?: SpecialValues
   initialValues: CSSProperties
@@ -184,7 +202,7 @@ export interface WaapiEntity {
 const konvaPropToWaapiPropMap: Partial<
   Record<
     EntityPropName,
-    keyof CSSProperties | Partial<Record<Entity['type'] | 'default', keyof CSSProperties>>
+    keyof CSSProperties | Partial<Record<EntityType | 'default', keyof CSSProperties>>
   >
 > = {
   fill: {
@@ -197,7 +215,7 @@ const konvaPropToWaapiPropMap: Partial<
   stroke: 'outlineColor',
 }
 
-function konvaPropToWaapiProp(prop: EntityPropName, entityType: Entity['type']) {
+function konvaPropToWaapiProp(prop: EntityPropName, entityType: EntityType) {
   const propName: keyof CSSProperties =
     // @ts-expect-error it may exist, may not, that's why there's a ?. dumbass, no i won't write type guards
     konvaPropToWaapiPropMap[prop]?.[entityType] ??
@@ -314,6 +332,33 @@ export function kfsToWaapi(
               -round(((kf.value as number) / 2 / width) * 100) + 'cqi'
             break
           }
+          case 'cellSize': {
+            waapiPropValue['backgroundSize'] =
+              `${round(((kf.value as number) / width) * 2 * 100)}cqi ${round(((kf.value as number) / width) * 2 * 100)}cqi`
+            waapiPropValue['width'] =
+              round((((kf.value as number) * e.props.gridSize!) / width) * 100) + '%'
+            waapiPropValue['height'] =
+              round((((kf.value as number) * e.props.gridSize!) / height) * 100) + '%'
+            break
+          }
+          case 'cellColor1': {
+            const prevCellColor2Kf = keyframes.findLast(
+              (prevKf) =>
+                prevKf.entityId === e.id && prevKf.prop === 'cellColor2' && prevKf.time <= kf.time
+            )
+            waapiPropValue['backgroundImage'] =
+              `repeating-conic-gradient(${prevCellColor2Kf?.value ?? e.props.cellColor2} 0% 25%, ${kf.value} 0% 50%)`
+            break
+          }
+          case 'cellColor2': {
+            const prevCellColor1Kf = keyframes.findLast(
+              (prevKf) =>
+                prevKf.entityId === e.id && prevKf.prop === 'cellColor1' && prevKf.time <= kf.time
+            )
+            waapiPropValue['backgroundImage'] =
+              `repeating-conic-gradient(${kf.value} 0% 25%, ${prevCellColor1Kf?.value ?? e.props.cellColor1} 0% 50%)`
+            break
+          }
           default: {
             waapiPropValue[konvaPropToWaapiProp(kf.prop, e.type)] = kf.value
           }
@@ -366,27 +411,8 @@ export function kfsToWaapi(
       left: round((e.props.x / width) * 100) + '%',
       top: round((e.props.y / height) * 100) + '%',
       width:
-        round(
-          ((e.props.width ??
-            (e.type === 'circle'
-              ? e.props.radius! * 2
-              : e.type === 'ring'
-                ? e.props.innerRadius! * 2
-                : (svgEntityDimensions[e.type]?.width ?? NaN))) /
-            width) *
-            100
-        ) + '%',
-      height:
-        round(
-          ((e.props.height ??
-            (e.type === 'circle'
-              ? e.props.radius! * 2
-              : e.type === 'ring'
-                ? e.props.innerRadius! * 2
-                : NaN)) /
-            height) *
-            100
-        ) + '%',
+        round(((e.props.width ?? svgEntityDimensions[e.type]?.width ?? NaN) / width) * 100) + '%',
+      height: round(((e.props.height ?? NaN) / height) * 100) + '%',
       rotate: e.props.rotation + 'deg',
       ...(e.type === 'rect' && e.props.strokeWidth
         ? {
@@ -395,9 +421,17 @@ export function kfsToWaapi(
             outlineStyle: 'solid',
           }
         : {}),
-      ...(e.type === 'circle' ? { borderRadius: '50%' } : {}),
+      ...(e.type === 'circle'
+        ? {
+            borderRadius: '50%',
+            width: round(((e.props.radius! * 2) / width) * 100) + '%',
+            height: round(((e.props.radius! * 2) / height) * 100) + '%',
+          }
+        : {}),
       ...(e.type === 'ring'
         ? {
+            width: round(((e.props.innerRadius! * 2) / width) * 100) + '%',
+            height: round(((e.props.innerRadius! * 2) / height) * 100) + '%',
             borderRadius: '50%',
             backgroundColor: 'transparent',
             boxSizing: 'content-box',
@@ -405,8 +439,17 @@ export function kfsToWaapi(
               round(((e.props.outerRadius! - e.props.innerRadius!) / width) * 100) + 'cqi',
           }
         : {}),
-      ...(e.type === 'text'
-        ? { fontSize: round(((e.props.fontSize as number) / width) * 100) + 'cqi' }
+      ...(e.type === 'text' ? { fontSize: round((e.props.fontSize! / width) * 100) + 'cqi' } : {}),
+      ...(e.type === 'checkerboard'
+        ? {
+            width: round(((e.props.cellSize! * e.props.gridSize!) / width) * 100) + '%',
+            height: round(((e.props.cellSize! * e.props.gridSize!) / height) * 100) + '%',
+            backgroundSize: `${round((e.props.cellSize! / width) * 2 * 100)}cqi ${round((e.props.cellSize! / width) * 2 * 100)}cqi`,
+            backgroundImage: `repeating-conic-gradient(${e.props.cellColor2} 0% 25%, ${e.props.cellColor1} 0% 50%)`,
+          }
+        : {}),
+      ...(e.props.scaleX !== undefined && e.props.scaleY !== undefined
+        ? { scale: `${e.props.scaleX} ${e.props.scaleY}` }
         : {}),
       ...(waapiKeyframes?.[0] as Omit<CSSProperties, 'offset'>),
     }
@@ -432,6 +475,13 @@ export function kfsToWaapi(
       delete initialValues.width
       delete initialValues.height
       delete initialValues.text
+    }
+
+    if (e.type === 'checkerboard') {
+      delete initialValues.gridSize
+      delete initialValues.cellSize
+      delete initialValues.cellColor1
+      delete initialValues.cellColor2
     }
 
     delete initialValues.x
