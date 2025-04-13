@@ -2,8 +2,9 @@
 
 import { CSSProperties, useEffect, useRef } from 'react'
 import { Arrow, Triangle } from '@/components/svg'
+import { WaapiEntity } from '@/components/canvas/canvas-utils'
 
-const waapiObj = [
+const waapiObj: WaapiEntity[] = [
   {
     type: 'rect',
     duration: 3000,
@@ -156,7 +157,7 @@ export default function TestPage() {
                   waapiObjRefs.current[ind] = ref
                 }}
               >
-                {entity.specialValues.text}
+                {entity.specialValues!.text}
               </span>
             )
           default:
