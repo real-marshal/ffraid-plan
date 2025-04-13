@@ -14,6 +14,7 @@ import { EntityPropEditor } from '@/components/entity-prop-editor'
 import {
   useHotkeys,
   useKonvaContextMenu,
+  usePlay,
   useRerender,
   useSelections,
   useUrlStateRestore,
@@ -36,12 +37,16 @@ export function Canvas() {
   const [state, dispatch] = useReducer(coreReducer, initialState)
   const { entities, keyframes, keyframesByEntity } = state
 
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(3)
-  const [fps, setFps] = useState(10)
-
-  const [isPlaying, setIsPlaying] = useState(false)
-  const playerInterval = useRef<number | null>(null)
+  const {
+    currentTime,
+    setCurrentTime,
+    duration,
+    setDuration,
+    fps,
+    setFps,
+    isPlaying,
+    togglePlaying,
+  } = usePlay()
 
   const {
     selectedEntityIds,
@@ -61,7 +66,7 @@ export function Canvas() {
 
   useUrlStateRestore(entities, dispatch)
 
-  useHotkeys({ selectedEntityIds, setSelectedEntityIds, dispatch })
+  useHotkeys({ selectedEntityIds, setSelectedEntityIds, dispatch, togglePlaying })
 
   debug && console.log('canvas rerender')
   debug && console.log('new state')
@@ -127,7 +132,7 @@ export function Canvas() {
         }}
       />
       <VerticalMenu
-        className='col-start-1 row-start-2 self-end justify-self-end'
+        className='col-start-1 row-start-2 self-end justify-self-end mr-1'
         onEntityAdd={(type: Entity['type']) => {
           const entity = makeEntity(type)
           dispatch({ type: 'add_entity', entity })
@@ -230,23 +235,8 @@ export function Canvas() {
       </div>
       <Timeline
         isPlaying={isPlaying}
-        onPlay={(duration) => {
-          const frameDuration = 1 / fps
-
-          setIsPlaying(true)
-          playerInterval.current = window.setInterval(() => {
-            setCurrentTime(
-              (time) => Math.round((time >= duration ? 0 : time + frameDuration) * 1000) / 1000
-            )
-          }, frameDuration * 1000)
-        }}
-        onPause={() => {
-          setIsPlaying(false)
-
-          if (playerInterval.current) {
-            window.clearInterval(playerInterval.current)
-          }
-        }}
+        onPlay={togglePlaying}
+        onPause={togglePlaying}
         currentTime={currentTime}
         setCurrentTime={setCurrentTime}
         duration={duration}

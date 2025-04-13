@@ -1,4 +1,5 @@
 import { NumberInput } from '@/components/number-input'
+import { externalState } from '@/components/canvas/external-state'
 
 export function Timeline({
   onPlay,
@@ -11,8 +12,8 @@ export function Timeline({
   fps,
   setFps,
 }: {
-  onPlay: (duration: number) => void
-  onPause: (duration: number) => void
+  onPlay: () => void
+  onPause: () => void
   isPlaying?: boolean
   currentTime: number
   setCurrentTime: (currentTime: number) => void
@@ -55,7 +56,7 @@ export function Timeline({
         <div className='grid grid-cols-[1fr_auto_1fr] items-center w-full mt-2'>
           <button
             className='btn btn-md w-[100px]'
-            onClick={() => (isPlaying ? onPause(duration) : onPlay(duration))}
+            onClick={() => (isPlaying ? onPause() : onPlay())}
           >
             {isPlaying ? 'Pause' : 'Play'}
           </button>
@@ -67,6 +68,8 @@ export function Timeline({
                 className='select select-sm'
                 value={fps}
                 onChange={(e) => setFps(Number.parseInt(e.target.value))}
+                onFocus={() => (externalState.isInputting = true)}
+                onBlur={() => (externalState.isInputting = false)}
               >
                 <option>10</option>
                 <option>30</option>

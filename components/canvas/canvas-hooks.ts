@@ -351,7 +351,7 @@ export function useSelections(
         node.scaleY(1)
       }
 
-      if (node.getClassName() === 'Path') {
+      if (node.getClassName() === 'Path' || node.getClassName() === 'Text') {
         dispatch({
           type: 'set_entity_param',
           id: node.id(),
@@ -405,14 +405,18 @@ export function useHotkeys({
   selectedEntityIds,
   setSelectedEntityIds,
   dispatch,
+  togglePlaying,
 }: {
   selectedEntityIds: string[]
   setSelectedEntityIds: (ids: string[]) => void
   dispatch: (action: CoreAction) => void
+  togglePlaying: () => void
 }) {
   useEffect(() => {
     const keyEventHandler = (e: KeyboardEvent) => {
       if (externalState.isInputting) return
+
+      e.preventDefault()
 
       switch (e.key) {
         case 'm': {
@@ -446,11 +450,56 @@ export function useHotkeys({
           setSelectedEntityIds([])
           break
         }
+        case ' ': {
+          togglePlaying()
+          break
+        }
       }
     }
 
     window.addEventListener('keydown', keyEventHandler, true)
 
     return () => window.removeEventListener('keydown', keyEventHandler, true)
-  }, [dispatch, selectedEntityIds, setSelectedEntityIds])
+  }, [dispatch, selectedEntityIds, togglePlaying, setSelectedEntityIds])
+}
+
+export function usePlay() {
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(3)
+  const [fps, setFps] = useState(10)
+
+  const [isPlaying, setIsPlaying] = useState(false)
+  const playerInterval = useRef<number | null>(null)
+
+  const play = useCallback(() => {
+    const frameDuration = 1 / fps
+
+    setIsPlaying(true)
+    playerInterval.current = window.setInterval(() => {
+      setCurrentTime(
+        (time) => Math.round((time >= duration ? 0 : time + frameDuration) * 1000) / 1000
+      )
+    }, frameDuration * 1000)
+  }, [duration, fps])
+
+  const pause = useCallback(() => {
+    setIsPlaying(false)
+
+    if (playerInterval.current) {
+      window.clearInterval(playerInterval.current)
+    }
+  }, [])
+
+  const togglePlaying = useCallback(() => (isPlaying ? pause() : play()), [isPlaying, pause, play])
+
+  return {
+    currentTime,
+    setCurrentTime,
+    duration,
+    setDuration,
+    fps,
+    setFps,
+    isPlaying,
+    togglePlaying,
+  }
 }
