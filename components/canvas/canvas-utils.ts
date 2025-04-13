@@ -396,7 +396,10 @@ export function kfsToWaapi(
       }
     }
 
-    waapiKeyframes?.[0] && delete waapiKeyframes[0].offset
+    // making sure that kfed props immediately switch to their initial values after the end of the animation
+    if (waapiKeyframes.length && waapiKeyframes[0].offset !== 0) {
+      waapiKeyframes.unshift({ ...waapiKeyframes[0], offset: 0 })
+    }
 
     const initialValues: Omit<
       Partial<EntityProps>,
