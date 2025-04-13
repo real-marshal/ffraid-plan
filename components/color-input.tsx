@@ -1,4 +1,5 @@
 import { HexAlphaColorPicker } from 'react-colorful'
+import { useState } from 'react'
 
 export function ColorInput({
   value,
@@ -7,6 +8,8 @@ export function ColorInput({
   value?: string
   onChange: (value: string) => void
 }) {
+  const [pickerValue, setPickerValue] = useState(value)
+
   return (
     <div className='dropdown dropdown-center cursor-pointer'>
       <div
@@ -16,7 +19,13 @@ export function ColorInput({
         style={{ backgroundColor: value }}
       ></div>
       <div tabIndex={0} className='dropdown-content'>
-        <HexAlphaColorPicker color={value} onChange={onChange} />
+        <HexAlphaColorPicker
+          color={pickerValue}
+          onChange={(value) => {
+            setPickerValue(value)
+            onChange(value)
+          }}
+        />
       </div>
     </div>
   )

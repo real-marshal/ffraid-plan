@@ -27,6 +27,7 @@ import { KfTimeline } from '@/components/kf-timeline'
 import { Timeline } from '@/components/timeline'
 import { Box } from 'konva/lib/shapes/Transformer'
 import { debug, height, width } from '@/components/canvas/external-state'
+import { debounce } from '@/utils'
 
 export function Canvas() {
   const [arena, setArena] = useState<ImageBitmap>()
@@ -68,6 +69,28 @@ export function Canvas() {
 
   useHotkeys({ selectedEntityIds, setSelectedEntityIds, dispatch, togglePlaying })
 
+  const onPropChange = debounce(
+    useCallback(
+      (propName: EntityPropName, value: number | string) => {
+        debug && console.log('onPropChange')
+
+        selectedEntities.forEach((e) =>
+          dispatch({
+            type: 'set_entity_param',
+            id: e.id,
+            param: propName,
+            value,
+            autoKf: true,
+            updateKf: true,
+            currentTime,
+          })
+        )
+      },
+      [currentTime, selectedEntities]
+    ),
+    50
+  )
+
   debug && console.log('canvas rerender')
   debug && console.log('new state')
   debug && console.log(state)
@@ -78,21 +101,7 @@ export function Canvas() {
         <EntityPropEditor
           className='col-start-1 row-start-1 row-span-3'
           entities={selectedEntities}
-          onPropChange={(propName, value) => {
-            debug && console.log('onPropChange')
-
-            selectedEntities.forEach((e) =>
-              dispatch({
-                type: 'set_entity_param',
-                id: e.id,
-                param: propName,
-                value,
-                autoKf: true,
-                updateKf: true,
-                currentTime,
-              })
-            )
-          }}
+          onPropChange={onPropChange}
           onKf={(param) =>
             keyframesByEntity[selectedEntity!.id]?.[param]?.find((kf) => kf.time === currentTime)
               ? selectedEntities.forEach((e) =>

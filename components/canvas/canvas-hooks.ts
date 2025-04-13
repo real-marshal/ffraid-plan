@@ -142,11 +142,15 @@ export function useRerender({
             param: prop as EntityPropName,
             value: Color.rgb(
               lerpRGB(
-                Color(prevKf.value).rgb().array() as [number, number, number],
-                Color(nextKf.value).rgb().array() as [number, number, number],
+                Color(prevKf.value).rgb().array() as
+                  | [number, number, number]
+                  | [number, number, number, number],
+                Color(nextKf.value).rgb().array() as
+                  | [number, number, number]
+                  | [number, number, number, number],
                 (currentTime - prevKf.time) / (nextKf.time - prevKf.time)
               )
-            ).hex(),
+            ).hexa(),
             autoKf: false,
             updateKf: false,
             currentTime,
@@ -420,8 +424,6 @@ export function useHotkeys({
     const keyEventHandler = (e: KeyboardEvent) => {
       if (externalState.isInputting) return
 
-      e.preventDefault()
-
       switch (e.key) {
         case 'm': {
           const entity = makeEntity('melee')
@@ -455,6 +457,7 @@ export function useHotkeys({
           break
         }
         case ' ': {
+          e.preventDefault()
           togglePlaying()
           break
         }
