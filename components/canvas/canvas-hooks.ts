@@ -161,7 +161,15 @@ export function useRerender({
   }, [currentTime, dispatch, keyframesByEntity])
 }
 
-export function useUrlStateRestore(entities: Entity[], dispatch: (action: CoreAction) => void) {
+export function useUrlStateRestore({
+  entities,
+  dispatch,
+  setDuration,
+}: {
+  entities: Entity[]
+  dispatch: (action: CoreAction) => void
+  setDuration: (duration: number) => void
+}) {
   const params = useSearchParams()
   const paramState = params.get('s')
 
@@ -172,14 +180,15 @@ export function useUrlStateRestore(entities: Entity[], dispatch: (action: CoreAc
         const restoredState = await base64ToState(paramState)
         console.log(restoredState)
         setTimeout(() => {
-          dispatch({ type: 'replace_state', newState: restoredState })
+          dispatch({ type: 'replace_state', newState: restoredState.primaryState })
+          setDuration(restoredState.duration)
         }, 10)
       } catch (err) {
         alert(err)
         console.error(err)
       }
     })()
-  }, [dispatch, entities.length, paramState])
+  }, [dispatch, entities.length, paramState, setDuration])
 }
 
 export function useSelections(

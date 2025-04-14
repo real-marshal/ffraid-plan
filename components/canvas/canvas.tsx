@@ -66,7 +66,7 @@ export function Canvas() {
 
   useRerender({ keyframesByEntity, currentTime, dispatch })
 
-  useUrlStateRestore(entities, dispatch)
+  useUrlStateRestore({ entities, dispatch, setDuration })
 
   useHotkeys({ selectedEntityIds, setSelectedEntityIds, dispatch, togglePlaying })
 

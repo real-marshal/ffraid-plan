@@ -61,10 +61,6 @@ export interface Kf {
   value: number | string
 }
 
-export type KfGroup = { id: string; kfs: Kf[] }
-
-export type KfsByTime = Record<number, KfGroup>
-
 export type KfsByEntity = Record<string, Record<EntityPropName, Kf[]>>
 
 export interface CoreState {
@@ -73,12 +69,13 @@ export interface CoreState {
   keyframes: Kf[]
   // // a materialized view for keyframes
   keyframesByEntity: KfsByEntity
-  keyframesByTime: KfsByTime
 }
+
+export type PrimaryState = Omit<CoreState, 'keyframesByEntity'>
 
 export type CoreAction =
   | { type: 'reset' }
-  | { type: 'replace_state'; newState: CoreState }
+  | { type: 'replace_state'; newState: PrimaryState }
   | { type: 'add_entity'; entity: Entity }
   | { type: 'add_entities'; entities: Entity[] }
   | { type: 'delete_entity'; id: string }
@@ -100,7 +97,6 @@ export type CoreAction =
 export const initialState = {
   entities: [],
   keyframes: [],
-  keyframesByTime: {},
   keyframesByEntity: {},
 }
 

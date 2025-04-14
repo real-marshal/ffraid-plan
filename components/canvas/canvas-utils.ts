@@ -1,4 +1,4 @@
-import { CoreState, Entity, EntityPropName, EntityProps, EntityType, Kf } from './canvas-state'
+import { Entity, EntityPropName, EntityProps, EntityType, Kf, PrimaryState } from './canvas-state'
 import { height, svgEntityDimensions, width } from '@/components/canvas/external-state'
 import { nanoid } from 'nanoid'
 import { compressBrotli, isObjEmpty, round, uncompressBrotli } from '@/utils'
@@ -512,10 +512,14 @@ export function kfsToWaapi(
   })
 }
 
+export interface SerializedState {
+  primaryState: PrimaryState
+  duration: number
+}
+
 export async function stateToBase64(entities: Entity[], keyframes: Kf[], duration: number) {
-  const storedState = {
-    entities,
-    keyframes,
+  const storedState: SerializedState = {
+    primaryState: { entities, keyframes },
     duration,
   }
 
@@ -524,12 +528,12 @@ export async function stateToBase64(entities: Entity[], keyframes: Kf[], duratio
   return fromByteArray(compressed).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
-export async function base64ToState(base64: string): Promise<CoreState> {
+export async function base64ToState(base64: string): Promise<SerializedState> {
   const properBase64 =
     base64.length % 4 !== 0 ? base64 + '='.repeat(4 - (base64.length % 4)) : base64
   const data = toByteArray(properBase64.replace(/-/g, '+').replace(/_/g, '/'))
 
   const msgpack = await uncompressBrotli(data)
 
-  return decode(msgpack) as CoreState
+  return decode(msgpack) as SerializedState
 }
