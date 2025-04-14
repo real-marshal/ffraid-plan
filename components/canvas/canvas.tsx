@@ -279,7 +279,7 @@ export function Canvas() {
       />
       <EntityList
         entities={entities}
-        className='col-start-3 row-span-3 ml-10 w-[350px]'
+        className='col-start-3 row-span-3 ml-10 w-[350px] overflow-y-auto h-[765px]'
         selectedEntityIds={selectedEntityIds}
         onEntitySelect={(id) => setSelectedEntityIds([id])}
         keyframesByEntity={keyframesByEntity}
