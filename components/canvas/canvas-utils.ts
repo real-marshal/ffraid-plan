@@ -227,9 +227,6 @@ function konvaPropToWaapiProp(prop: EntityPropName, entityType: EntityType) {
   return propName
 }
 
-// uses top/left & width/height atm, not transforms
-// example output
-// [{"type":"rect","duration":3,"keyframes":[{"backgroundColor":"#ffffff","left":"15.67%","top":"15.83%","width":"5%","height":"5%","rotate":"0deg"},{"offset":1,"backgroundColor":"#26a269","left":"72.83%","top":"36.67%","width":"13.92%","height":"13.92%","rotate":"-180deg"},{"offset":2,"left":"49.12%","top":"55.08%","width":"43.06%","height":"6.76%","rotate":"-162.9deg"}],"initialValues":{"transform":"translate(-50%,-50%)","left":"15.67%","top":"15.83%","width":"5%","height":"5%","opacity":1,"backgroundColor":"#ffffff","rotate":"0deg"}}]
 export function kfsToWaapi(
   entities: Entity[],
   passedKeyframes: Kf[],
@@ -366,7 +363,7 @@ export function kfsToWaapi(
 
         const ind = result.findIndex((kfToFind) => kfToFind.offset === offset)
 
-        // if already added, then just add to the existing kf
+        // if a kf with the same time already exists, then just add to it
         if (ind >= 0) {
           // @ts-expect-error fuck you
           result[ind] = { ...result[ind], ...waapiPropValue }
@@ -380,27 +377,6 @@ export function kfsToWaapi(
       }, [] as Keyframe[])
       .sort((a, b) => a.offset! - b.offset!)
 
-    if (waapiKeyframes.length && waapiKeyframes.at(-1)!.offset !== 1) {
-      waapiKeyframes.push({ offset: 1 })
-    }
-
-    const lastKf = waapiKeyframes.at(-1)
-
-    // making sure that kfed props don't start shifting to their initial values until the end of the whole animation
-    for (const kfedProp of kfedProps) {
-      const kf = waapiKeyframes.findLast((kf) => kfedProp in kf)!
-
-      if (kf.offset !== 1) {
-        // @ts-expect-error makes no sense whatsoever
-        lastKf[kfedProp] = kf[kfedProp]
-      }
-    }
-
-    // making sure that kfed props immediately switch to their initial values after the end of the animation
-    if (waapiKeyframes.length && waapiKeyframes[0].offset !== 0) {
-      waapiKeyframes.unshift({ ...waapiKeyframes[0], offset: 0 })
-    }
-
     const initialValues: Omit<
       Partial<EntityProps>,
       'width' | 'height' | 'opacity' | 'fontSize' | 'strokeWidth'
@@ -410,7 +386,6 @@ export function kfsToWaapi(
       position: 'absolute',
       // compensating for origin shift
       translate: '-50% -50%',
-      // for the case when they weren't kf'd
       left: round((e.props.x / width) * 100) + '%',
       top: round((e.props.y / height) * 100) + '%',
       width:
@@ -454,7 +429,6 @@ export function kfsToWaapi(
       ...(e.props.scaleX !== undefined && e.props.scaleY !== undefined
         ? { scale: `${e.props.scaleX} ${e.props.scaleY}` }
         : {}),
-      ...(waapiKeyframes?.[0] as Omit<CSSProperties, 'offset'>),
     }
 
     const specialValues: SpecialValues = {}
@@ -493,6 +467,7 @@ export function kfsToWaapi(
     delete initialValues.innerRadius
     delete initialValues.outerRadius
     delete initialValues.strokeWidth
+    delete initialValues.image
 
     for (const konvaProp in konvaPropToWaapiPropMap) {
       const cssProp = konvaPropToWaapiProp(konvaProp as EntityPropName, e.type)
@@ -500,6 +475,38 @@ export function kfsToWaapi(
       initialValues[cssProp] = (initialValues as Partial<EntityProps>)[konvaProp as EntityPropName]
       cssProp !== konvaProp &&
         delete (initialValues as Partial<EntityProps>)[konvaProp as EntityPropName]
+    }
+
+    /* setting proper initial values for kfed props */
+
+    for (const kfedProp of kfedProps) {
+      const firstFoundKf = waapiKeyframes.find((kf) => kfedProp in kf)!
+
+      // @ts-expect-error makes no sense whatsoever
+      initialValues[kfedProp] = firstFoundKf[kfedProp]
+    }
+
+    /* making sure that kfed props immediately switch to their initial values after the end of the animation */
+
+    if (waapiKeyframes.length) {
+      waapiKeyframes.unshift({ ...initialValues, offset: 0 })
+    }
+
+    /* making sure that kfed props don't start shifting to their initial values until the end of the whole animation */
+
+    if (waapiKeyframes.length && waapiKeyframes.at(-1)!.offset !== 1) {
+      waapiKeyframes.push({ offset: 1 })
+    }
+
+    const lastKf = waapiKeyframes.at(-1)
+
+    for (const kfedProp of kfedProps) {
+      const lastFoundKf = waapiKeyframes.findLast((kf) => kfedProp in kf)!
+
+      if (lastFoundKf.offset !== 1) {
+        // @ts-expect-error makes no sense whatsoever
+        lastKf[kfedProp] = lastFoundKf[kfedProp]
+      }
     }
 
     return {
