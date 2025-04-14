@@ -26,8 +26,9 @@ import Konva from 'konva'
 import { KfTimeline } from '@/components/kf-timeline'
 import { Timeline } from '@/components/timeline'
 import { Box } from 'konva/lib/shapes/Transformer'
-import { debug, height, width } from '@/components/canvas/external-state'
+import { debug, externalState, height, width } from '@/components/canvas/external-state'
 import { debounce } from '@/utils'
+import { nanoid } from 'nanoid'
 
 export function Canvas() {
   const [arena, setArena] = useState<ImageBitmap>()
@@ -239,6 +240,24 @@ export function Canvas() {
               dispatch({ type: 'delete_entity', id: contextMenuState.targetId! })
               setSelectedEntityIds([])
             }}
+            onCopy={() => {
+              externalState.entityClipboard = structuredClone(selectedEntities)
+            }}
+            onPaste={() => {
+              const pastedEntities = externalState.entityClipboard.map((e) => ({
+                ...e,
+                id: nanoid(4),
+                props: {
+                  ...e.props,
+                  x: contextMenuState.x!,
+                  y: contextMenuState.y!,
+                },
+              }))
+              dispatch({ type: 'add_entities', entities: pastedEntities })
+              externalState.entityClipboard = []
+            }}
+            // should be ok even without explicit reactivity
+            isPastable={externalState.entityClipboard.length > 0}
           />
         )}
       </div>

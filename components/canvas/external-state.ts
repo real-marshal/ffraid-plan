@@ -1,5 +1,5 @@
 import Konva from 'konva'
-import { EntityType } from '@/components/canvas/canvas-state'
+import { Entity, EntityType } from '@/components/canvas/canvas-state'
 import { arrowDimensions, SVGDimensions, triangleDimensions } from '@/components/svg'
 
 export const debug = true
@@ -15,9 +15,11 @@ export const svgEntityDimensions: Partial<Record<EntityType, SVGDimensions>> = {
 interface ExternalState {
   entityRefs: Record<string, Konva.Node | null>
   isInputting: boolean
+  entityClipboard: Entity[]
 }
 
 export const externalState: ExternalState = {
   entityRefs: {},
   isInputting: false,
+  entityClipboard: [],
 }

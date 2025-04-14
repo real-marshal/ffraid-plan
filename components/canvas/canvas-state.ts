@@ -80,6 +80,7 @@ export type CoreAction =
   | { type: 'reset' }
   | { type: 'replace_state'; newState: CoreState }
   | { type: 'add_entity'; entity: Entity }
+  | { type: 'add_entities'; entities: Entity[] }
   | { type: 'delete_entity'; id: string }
   | { type: 'toggle_selectable'; id: string }
   | { type: 'move_entity'; ind: number; newInd: number }
@@ -122,6 +123,11 @@ export function coreReducer(state: CoreState, action: CoreAction): CoreState {
     case 'add_entity': {
       return produce(state, (draft) => {
         draft.entities.push(action.entity)
+      })
+    }
+    case 'add_entities': {
+      return produce(state, (draft) => {
+        draft.entities.push(...action.entities)
       })
     }
     case 'delete_entity': {

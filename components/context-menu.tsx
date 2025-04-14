@@ -4,10 +4,16 @@ export function ContextMenu({
   className,
   style,
   onDelete,
+  onCopy,
+  onPaste,
+  isPastable,
 }: {
   className?: string
   style?: CSSProperties
   onDelete: () => void
+  onCopy: () => void
+  onPaste: () => void
+  isPastable: boolean
 }) {
   return (
     <ul
@@ -16,6 +22,8 @@ export function ContextMenu({
     >
       <li>
         <button onClick={onDelete}>Delete</button>
+        <button onClick={onCopy}>Copy</button>
+        {isPastable && <button onClick={onPaste}>Paste</button>}
       </li>
     </ul>
   )
