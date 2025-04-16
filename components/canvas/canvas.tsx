@@ -121,9 +121,12 @@ export function Canvas() {
       <Menu
         className='col-start-2'
         onClear={() => {
-          dispatch({ type: 'reset' })
-          setSelectedEntityIds([])
           window.history.replaceState({}, '', '/')
+
+          setTimeout(() => {
+            dispatch({ type: 'reset' })
+            setSelectedEntityIds([])
+          }, 10)
         }}
         onWaapiExport={() => {
           const waapiObj = kfsToWaapi(entities, keyframes, duration)
