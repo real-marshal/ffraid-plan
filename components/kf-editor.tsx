@@ -133,14 +133,13 @@ function KfMarker({
       className={`kf-marker absolute text-sm font-bold -translate-x-1/2 text-center select-none cursor-grab hover:scale-[1.3] z-[2]  ${selectedKfIds.includes(id) ? 'scale-[1.3]' : ''}`}
       style={{
         left: `${Math.round((time / duration) * 100)}%`,
-        // scale: selectedKfIds.includes(id) ? 1.3 : 'none',
       }}
       draggable
       onDragEnd={(e) => {
         const relativeX = e.clientX - (window.innerWidth - width) / 2
 
-        selectedKfIds.forEach((kf) => {
-          onKfMove(kf, round((relativeX / width) * duration, 1))
+        ;(selectedKfIds.length ? selectedKfIds : [id]).forEach((kfId) => {
+          onKfMove(kfId, round((relativeX / width) * duration, 1))
         })
       }}
       onMouseOver={() => {
@@ -158,10 +157,12 @@ function KfMarker({
               ? ids.filter((idToFilter) => !siblingKfIds.includes(idToFilter))
               : [...new Set([...ids, ...siblingKfIds])]
           )
-        } else {
+        } else if (e.ctrlKey) {
           setSelectedKfIds((ids) =>
             ids.includes(id) ? ids.filter((idToFilter) => idToFilter !== id) : [...ids, id]
           )
+        } else {
+          setSelectedKfIds([id])
         }
       }}
     >
