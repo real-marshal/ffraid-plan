@@ -13,13 +13,15 @@ export function Entities({
   onContextMenu,
   setSelectedEntityIds,
   selectedEntityIds,
+  addRemoveEntityId,
 }: {
   entities: Entity[]
   dispatch: (action: CoreAction) => void
   currentTime: number
-  onContextMenu: (entityId: string) => (e: Konva.KonvaEventObject<PointerEvent>) => void
+  onContextMenu: (e: Konva.KonvaEventObject<PointerEvent>) => void
   setSelectedEntityIds: (ids: string[]) => void
   selectedEntityIds: string[]
+  addRemoveEntityId: (id: string) => void
 }) {
   return entities.map((entity) => {
     const commonProps = {
@@ -28,11 +30,11 @@ export function Entities({
         externalState.entityRefs[entity.id] = ref
       },
       draggable: entity.selectable,
-      onContextMenu: onContextMenu(entity.id),
+      onContextMenu,
       onClick: (e: Konva.KonvaEventObject<MouseEvent>) => {
         if (!entity.selectable) return
 
-        setSelectedEntityIds([entity.id])
+        e.evt.ctrlKey ? addRemoveEntityId(entity.id) : setSelectedEntityIds([entity.id])
         e.cancelBubble = true
       },
       onDragStart: (e: Konva.KonvaEventObject<MouseEvent>) => {

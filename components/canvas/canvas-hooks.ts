@@ -11,24 +11,19 @@ import { debug } from '@/components/canvas/external-state'
 export function useKonvaContextMenu() {
   const [contextMenuState, setContextMenuState] = useState<{
     isShown: boolean
-    targetId?: string
     x?: number
     y?: number
   }>({ isShown: false })
 
-  const onContextMenu = useCallback(
-    (entityId: string) => (e: Konva.KonvaEventObject<PointerEvent>) => {
-      e.evt.preventDefault()
+  const onContextMenu = useCallback((e: Konva.KonvaEventObject<PointerEvent>) => {
+    e.evt.preventDefault()
 
-      setContextMenuState({
-        isShown: true,
-        targetId: entityId,
-        x: e.target.getStage()?.getPointerPosition()?.x ?? 0,
-        y: e.target.getStage()?.getPointerPosition()?.y ?? 0,
-      })
-    },
-    []
-  )
+    setContextMenuState({
+      isShown: true,
+      x: e.target.getStage()?.getPointerPosition()?.x ?? 0,
+      y: e.target.getStage()?.getPointerPosition()?.y ?? 0,
+    })
+  }, [])
 
   useEffect(() => {
     const listener = () => setContextMenuState({ isShown: false })
@@ -403,6 +398,37 @@ export function useSelections(
     })
   }
 
+  const addRemoveEntityId = useCallback(
+    (id: string) => {
+      const ind = selectedEntityIds.indexOf(id)
+
+      if (ind === -1) {
+        setSelectedEntityIds((selectedEntityIds) => [...selectedEntityIds, id])
+        return
+      }
+
+      setSelectedEntityIds((selectedEntityIds) => selectedEntityIds.filter((id) => id !== id))
+    },
+    [selectedEntityIds]
+  )
+
+  const addPreviousEntityIds = useCallback(
+    (id: string) => {
+      if (!selectedEntityIds.length) {
+        setSelectedEntityIds([id])
+        return
+      }
+
+      const prevInd = entities.findIndex((e) => e.id === selectedEntityIds.at(-1))
+      const ind = entities.findIndex((e) => e.id === id)
+
+      setSelectedEntityIds((selectedEntityIds) => [
+        ...new Set([...selectedEntityIds, ...entities.map((e) => e.id).slice(prevInd, ind + 1)]),
+      ])
+    },
+    [entities, selectedEntityIds]
+  )
+
   return {
     selectedEntityIds,
     setSelectedEntityIds,
@@ -415,6 +441,8 @@ export function useSelections(
     stageOnMouseMove,
     stageOnMouseUp,
     onTransformEnd,
+    addRemoveEntityId,
+    addPreviousEntityIds,
   }
 }
 
@@ -459,9 +487,8 @@ export function useHotkeys({
           break
         }
         case 'Backspace': {
-          selectedEntityIds.forEach((entityId) => {
-            dispatch({ type: 'delete_entity', id: entityId })
-          })
+          dispatch({ type: 'delete_entities', ids: selectedEntityIds })
+
           setSelectedEntityIds([])
           break
         }

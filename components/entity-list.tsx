@@ -19,7 +19,7 @@ export function EntityList({
   entities: Entity[]
   selectedEntityIds: string[]
   keyframesByEntity: KfsByEntity
-  onEntitySelect: (entityId: string) => void
+  onEntitySelect: (entityId: string, shouldAddRemove: boolean, shouldAddPrevious: boolean) => void
   onEntitySelectableToggle: (entityId: string) => void
   onEntityMove: (ind: number, newInd: number) => void
   className?: string
@@ -86,7 +86,7 @@ function EntityListEntry({
 }: {
   entity: Entity
   selectedEntityIds: string[]
-  onEntitySelect: (entityId: string) => void
+  onEntitySelect: (entityId: string, shouldAddRemove: boolean, shouldAddPrevious: boolean) => void
   onEntitySelectableToggle: (entityId: string) => void
   isKfed: boolean
 }) {
@@ -97,7 +97,7 @@ function EntityListEntry({
   return (
     <tr
       key={entity.id}
-      className='cursor-pointer hover:bg-base-300'
+      className='cursor-pointer hover:bg-base-300 select-none'
       style={{
         backgroundColor: selectedEntityIds.includes(entity.id)
           ? 'var(--color-base-300)'
@@ -105,7 +105,7 @@ function EntityListEntry({
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      onClick={() => onEntitySelect(entity.id)}
+      onClick={(e) => onEntitySelect(entity.id, e.ctrlKey, e.shiftKey)}
       ref={setNodeRef}
     >
       <td>{entity.type}</td>

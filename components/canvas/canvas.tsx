@@ -62,6 +62,8 @@ export function Canvas() {
     stageOnMouseMove,
     stageOnMouseUp,
     onTransformEnd,
+    addRemoveEntityId,
+    addPreviousEntityIds,
   } = useSelections(entities, currentTime, dispatch)
 
   useRerender({ keyframesByEntity, currentTime, dispatch })
@@ -179,6 +181,7 @@ export function Canvas() {
               onContextMenu={onContextMenu}
               selectedEntityIds={selectedEntityIds}
               setSelectedEntityIds={setSelectedEntityIds}
+              addRemoveEntityId={addRemoveEntityId}
             />
           </Layer>
           <Layer>
@@ -226,6 +229,7 @@ export function Canvas() {
               onMouseOut={(e) => {
                 e.target.getStage()!.container().style.cursor = 'default'
               }}
+              onContextMenu={onContextMenu}
             />
           </Layer>
         </Stage>
@@ -237,7 +241,7 @@ export function Canvas() {
               top: contextMenuState.y,
             }}
             onDelete={() => {
-              dispatch({ type: 'delete_entity', id: contextMenuState.targetId! })
+              dispatch({ type: 'delete_entities', ids: selectedEntityIds })
               setSelectedEntityIds([])
             }}
             onCopy={() => {
@@ -281,7 +285,13 @@ export function Canvas() {
         entities={entities}
         className='col-start-3 row-span-3 ml-10 w-[350px] overflow-y-auto h-[765px]'
         selectedEntityIds={selectedEntityIds}
-        onEntitySelect={(id) => setSelectedEntityIds([id])}
+        onEntitySelect={(id, shouldAddRemove, shouldAddPrevious) =>
+          shouldAddRemove
+            ? addRemoveEntityId(id)
+            : shouldAddPrevious
+              ? addPreviousEntityIds(id)
+              : setSelectedEntityIds([id])
+        }
         keyframesByEntity={keyframesByEntity}
         onEntitySelectableToggle={(entityId) =>
           dispatch({ type: 'toggle_selectable', id: entityId })

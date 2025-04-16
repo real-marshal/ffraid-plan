@@ -78,7 +78,7 @@ export type CoreAction =
   | { type: 'replace_state'; newState: PrimaryState }
   | { type: 'add_entity'; entity: Entity }
   | { type: 'add_entities'; entities: Entity[] }
-  | { type: 'delete_entity'; id: string }
+  | { type: 'delete_entities'; ids: string[] }
   | { type: 'toggle_selectable'; id: string }
   | { type: 'move_entity'; ind: number; newInd: number }
   | {
@@ -126,12 +126,11 @@ export function coreReducer(state: CoreState, action: CoreAction): CoreState {
         draft.entities.push(...action.entities)
       })
     }
-    case 'delete_entity': {
+    case 'delete_entities': {
       return produce(state, (draft) => {
-        const ind = draft.entities.findIndex((e) => e.id === action.id)
-        if (ind !== -1) draft.entities.splice(ind, 1)
+        draft.entities = draft.entities.filter((e) => !action.ids.includes(e.id))
 
-        draft.keyframes = draft.keyframes.filter((kf) => kf.entityId !== action.id)
+        draft.keyframes = draft.keyframes.filter((kf) => !action.ids.includes(kf.entityId))
         draft.keyframesByEntity = generateKfsByEntity(draft.keyframes)
       })
     }
