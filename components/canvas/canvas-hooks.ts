@@ -220,27 +220,37 @@ export function useSelections(
     transformerRef.current.nodes(nodes)
   }, [selectedEntityIds])
 
-  const stageOnClick = useCallback(() => {
-    debug && console.log('stage onclick')
-    setSelectedEntityIds([])
-  }, [])
+  const stageOnClick = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      debug && console.log('stage onclick')
+      e.evt.button === 0 && setSelectedEntityIds([])
+    },
+    [setSelectedEntityIds]
+  )
 
-  const stageOnMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (e.target.id() !== 'arena-image') {
-      return
-    }
+  const stageOnMouseDown = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      // start drawing selection only from arena or non-selectable entities
+      if (
+        e.target.id() !== 'arena-image' &&
+        entities.find((entity) => entity.id === e.target.id())?.selectable
+      ) {
+        return
+      }
 
-    const { x, y } = e.target.getStage()?.getPointerPosition() ?? {}
-    if (x === undefined || y === undefined) return
+      const { x, y } = e.target.getStage()?.getPointerPosition() ?? {}
+      if (x === undefined || y === undefined) return
 
-    setSelectionRect({
-      isShown: true,
-      x1: x,
-      y1: y,
-      x2: x,
-      y2: y,
-    })
-  }, [])
+      setSelectionRect({
+        isShown: true,
+        x1: x,
+        y1: y,
+        x2: x,
+        y2: y,
+      })
+    },
+    [entities]
+  )
 
   const stageOnMouseMove = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -274,11 +284,15 @@ export function useSelections(
       height: Math.abs(selectionRect.y2 - selectionRect.y1),
     }
 
+    // prevent resetting selection on other clicks
+    if (selection.width <= 5 || selection.height <= 5) return
+
     setSelectedEntityIds(
       entities
         .filter(
           ({ props, selectable }) =>
             selectable &&
+            (props.width ?? props.radius) &&
             Konva.Util.haveIntersection(selection, {
               x: props.x,
               y: props.y,

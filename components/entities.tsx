@@ -47,6 +47,8 @@ export function Entities({
         e.target.getStage()!.container().style.cursor = 'pointer'
       },
       onMouseOver: (e: Konva.KonvaEventObject<MouseEvent>) => {
+        if (!entity.selectable) return
+
         e.target.getStage()!.container().style.cursor = 'pointer'
       },
       onMouseOut: (e: Konva.KonvaEventObject<MouseEvent>) => {
