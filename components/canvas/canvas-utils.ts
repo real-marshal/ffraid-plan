@@ -98,6 +98,8 @@ export function makeEntity(type: EntityType): Entity {
           y: height / 2,
           radius: 15,
           rotation: 0,
+          stroke: 'black',
+          strokeWidth: 0,
         },
       }
     case 'arrow':
@@ -392,7 +394,7 @@ export function kfsToWaapi(
         round(((e.props.width ?? svgEntityDimensions[e.type]?.width ?? NaN) / width) * 100) + '%',
       height: round(((e.props.height ?? NaN) / height) * 100) + '%',
       rotate: e.props.rotation + 'deg',
-      ...(e.type === 'rect' && e.props.strokeWidth
+      ...((e.type === 'rect' || e.type === 'circle') && e.props.strokeWidth
         ? {
             outlineWidth: round((e.props.strokeWidth / width) * 100) + 'cqi',
             outlineOffset: -round((e.props.strokeWidth / 2 / width) * 100) + 'cqi',
