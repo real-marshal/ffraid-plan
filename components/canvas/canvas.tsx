@@ -23,7 +23,7 @@ import { kfsToWaapi, makeEntity, stateToBase64 } from './canvas-utils'
 import { coreReducer, EntityPropName, EntityType, initialState } from './canvas-state'
 import { Entities } from '@/components/entities'
 import Konva from 'konva'
-import { KfTimeline } from '@/components/kf-timeline'
+import { KfEditor } from '@/components/kf-editor'
 import { Timeline } from '@/components/timeline'
 import { Box } from 'konva/lib/shapes/Transformer'
 import { debug, externalState, height, width } from '@/components/canvas/external-state'
@@ -272,10 +272,10 @@ export function Canvas() {
         fps={fps}
         setFps={setFps}
       />
-      <KfTimeline
+      <KfEditor
         keyframesByEntity={keyframesByEntity}
         duration={duration}
-        onKfMove={(time, newTime) => dispatch({ type: 'move_kf', time, newTime })}
+        onKfMove={(id, newTime) => dispatch({ type: 'move_kf', id, newTime })}
       />
       <EntityList
         entities={entities}

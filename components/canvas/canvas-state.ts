@@ -92,7 +92,7 @@ export type CoreAction =
     }
   | { type: 'set_kf'; entityId: string; param: EntityPropName; currentTime: number }
   | { type: 'remove_kf'; entityId: string; param: EntityPropName; currentTime: number }
-  | { type: 'move_kf'; time: number; newTime: number }
+  | { type: 'move_kf'; id: string; newTime: number }
 
 export const initialState = {
   entities: [],
@@ -220,9 +220,7 @@ export function coreReducer(state: CoreState, action: CoreAction): CoreState {
     }
     case 'move_kf': {
       return produce(state, (draft) => {
-        draft.keyframes
-          .filter((kf) => kf.time === action.time)
-          .forEach((kf) => (kf.time = action.newTime))
+        draft.keyframes.find((kf) => kf.id === action.id)!.time = action.newTime
 
         draft.keyframesByEntity = generateKfsByEntity(draft.keyframes)
       })
