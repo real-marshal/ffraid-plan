@@ -70,7 +70,7 @@ export function Canvas() {
 
   useUrlStateRestore({ entities, dispatch, setDuration })
 
-  useHotkeys({ selectedEntityIds, setSelectedEntityIds, dispatch, togglePlaying })
+  useHotkeys({ selectedEntityIds, setSelectedEntityIds, dispatch, togglePlaying, selectedEntities })
 
   const onPropChange = debounce(
     useCallback(
@@ -163,6 +163,7 @@ export function Canvas() {
           onMouseDown={stageOnMouseDown}
           onMouseMove={stageOnMouseMove}
           onMouseUp={stageOnMouseUp}
+          onContextMenu={onContextMenu}
         >
           <Layer>
             <Image

@@ -5,8 +5,9 @@ import { lerp, lerpRGB, round } from '@/utils'
 import Color from 'color'
 import { useSearchParams } from 'next/navigation'
 import { base64ToState, makeEntity } from '@/components/canvas/canvas-utils'
-import { externalState } from '@/components/canvas/external-state'
+import { externalState, height, width } from '@/components/canvas/external-state'
 import { debug } from '@/components/canvas/external-state'
+import { nanoid } from 'nanoid'
 
 export function useKonvaContextMenu() {
   const [contextMenuState, setContextMenuState] = useState<{
@@ -462,11 +463,13 @@ export function useSelections(
 
 export function useHotkeys({
   selectedEntityIds,
+  selectedEntities,
   setSelectedEntityIds,
   dispatch,
   togglePlaying,
 }: {
   selectedEntityIds: string[]
+  selectedEntities: Entity[]
   setSelectedEntityIds: (ids: string[]) => void
   dispatch: (action: CoreAction) => void
   togglePlaying: () => void
@@ -506,6 +509,28 @@ export function useHotkeys({
           setSelectedEntityIds([])
           break
         }
+        case 'c': {
+          if (!e.ctrlKey) return
+
+          externalState.entityClipboard = structuredClone(selectedEntities)
+          break
+        }
+        case 'v': {
+          if (!e.ctrlKey) return
+
+          const pastedEntities = externalState.entityClipboard.map((e) => ({
+            ...e,
+            id: nanoid(4),
+            props: {
+              ...e.props,
+              x: width / 2,
+              y: height / 2,
+            },
+          }))
+          dispatch({ type: 'add_entities', entities: pastedEntities })
+          externalState.entityClipboard = []
+          break
+        }
         case ' ': {
           e.preventDefault()
           togglePlaying()
@@ -517,7 +542,7 @@ export function useHotkeys({
     window.addEventListener('keydown', keyEventHandler, true)
 
     return () => window.removeEventListener('keydown', keyEventHandler, true)
-  }, [dispatch, selectedEntityIds, togglePlaying, setSelectedEntityIds])
+  }, [dispatch, selectedEntityIds, togglePlaying, setSelectedEntityIds, selectedEntities])
 }
 
 export function usePlay() {
