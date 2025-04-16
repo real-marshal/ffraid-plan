@@ -402,6 +402,26 @@ export function useSelections(
       dispatch({
         type: 'set_entity_param',
         id: node.id(),
+        param: 'x',
+        value: round(node.x()),
+        autoKf: true,
+        updateKf: true,
+        currentTime,
+      })
+
+      dispatch({
+        type: 'set_entity_param',
+        id: node.id(),
+        param: 'y',
+        value: round(node.y()),
+        autoKf: true,
+        updateKf: true,
+        currentTime,
+      })
+
+      dispatch({
+        type: 'set_entity_param',
+        id: node.id(),
         param: 'rotation',
         value: round(node.rotation()),
         autoKf: true,
